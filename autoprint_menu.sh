@@ -100,6 +100,20 @@ function update_from_github() {
 
             if ls "$LOCAL_FOLDER"/*.sh 1> /dev/null 2>&1; then
                 cp "$LOCAL_FOLDER"/*.sh "$HOME" || { echo -e "${RED}Failed to copy scripts.${NC}"; return; }
+
+                # Rename the main script to 'autoprint' and make executable
+                if [ -f "$HOME/autoprint_menu.sh" ]; then
+                    mv "$HOME/autoprint_menu.sh" "$HOME/autoprint"
+                    chmod +x "$HOME/autoprint"
+                    echo -e "${GREEN}[*] 'autoprint' command is now ready.${NC}"
+                fi
+
+                # Ensure $HOME is in PATH
+                SHELL_RC="$HOME/.bashrc"
+                if [ -n "$ZSH_VERSION" ]; then SHELL_RC="$HOME/.zshrc"; fi
+                grep -q 'export PATH="$HOME:$PATH"' "$SHELL_RC" 2>/dev/null || echo 'export PATH="$HOME:$PATH"' >> "$SHELL_RC"
+                export PATH="$HOME:$PATH"
+
                 echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
                 echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
             else
