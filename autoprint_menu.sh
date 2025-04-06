@@ -1,5 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
+clear
+
 CONFIG_FILE="$HOME/.autoprint_config.json"
 BACKUP_FILE="$HOME/.autoprint_config_backup.json"
 GIT_REPO="https://github.com/juniorsir/Client-AP.git"
