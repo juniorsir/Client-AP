@@ -57,40 +57,58 @@ EOF
     echo "Configuration saved."
 }
 
-function update_from_github() {
-    echo ""
-    echo "[Checking for updates from GitHub...]"
 
-    if [ -d "$LOCAL_FOLDER" ]; then
-        cd "$LOCAL_FOLDER"
-        git fetch origin main >/dev/null 2>&1
-        local_hash=$(git rev-parse HEAD)
-        remote_hash=$(git rev-parse origin/main)
-
-        if [ "$local_hash" != "$remote_hash" ]; then
-            echo ""
-            echo "--------------------------------------------------"
-            echo "  [!] A new update is available for AutoPrint!"
-            echo "  Your version:   $local_hash"
-            echo "  Latest version: $remote_hash"
-            echo "  To update now, choose option 6 in the menu."
-            echo "--------------------------------------------------"
-        else
-            echo "You already have the latest version."
-        fi
-    else
-        echo "[First-time install...]"
-        git clone "$GIT_REPO" "$LOCAL_FOLDER"
-        cp "$LOCAL_FOLDER"/*.sh "$HOME"
-        echo "Installed scripts from GitHub."
-    fi
-}
 
 function show_menu() {
     while true; do
         echo ""
         echo "========== AutoPrint Menu =========="
-        echo "1. Start AutoPrint"
+        echo function update_from_github() {
+    echo ""
+    echo "[Checking for updates from GitHub...]"
+
+    REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
+    LOCAL_VERSION_FILE="$HOME/.autoprint_version"
+    CONFIG_FILE="$HOME/.autoprint_config.json"
+    BACKUP_FILE="$HOME/.autoprint_config_backup.json"
+
+    if [ ! -f "$LOCAL_VERSION_FILE" ]; then
+        echo "v0.0.0" > "$LOCAL_VERSION_FILE"
+    fi
+
+    LOCAL_VERSION=$(cat "$LOCAL_VERSION_FILE")
+
+    if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
+        echo ""
+        echo "--------------------------------------------------"
+        echo "  [!] Update available: $REMOTE_VERSION"
+        echo "  Current version: $LOCAL_VERSION"
+        echo "--------------------------------------------------"
+
+        read -p "Do you want to update now? (y/n): " confirm
+        if [ "$confirm" = "y" ]; then
+            echo "[*] Backing up config..."
+            [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
+
+            echo "[*] Updating scripts..."
+            if [ -d "$LOCAL_FOLDER" ]; then
+                cd "$LOCAL_FOLDER"
+                git pull origin main
+            else
+                git clone "$GIT_REPO" "$LOCAL_FOLDER"
+            fi
+
+            cp "$LOCAL_FOLDER"/*.sh "$HOME"
+
+            echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
+            echo "[✓] Update completed to version $REMOTE_VERSION."
+        else
+            echo "[!] Update skipped."
+        fi
+    else
+        echo "You already have the latest version ($LOCAL_VERSION)."
+    fi
+}"1. Start AutoPrint"
         echo "2. Stop AutoPrint"
         echo "3. Edit Configuration"
         echo "4. Reset Settings"
