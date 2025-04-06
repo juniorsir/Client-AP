@@ -94,6 +94,8 @@ function show_menu() {
         echo "4. Reset Settings"
         echo "5. Exit"
         echo "6. Check for Updates"
+        echo "7. Developer Info"
+    
         echo "===================================="
         read -p "Choose an option: " opt
 
@@ -104,6 +106,34 @@ function show_menu() {
             4) rm -f "$CONFIG_FILE"; echo "Settings cleared." ;;
             5) echo "Exiting."; break ;;
             6) update_from_github ;;
+            7) 
+               echo ""
+               echo "=== Developer Info ==="
+               echo "Name: JuniorSir"
+               echo "GitHub: https://github.com/juniorsir"
+               echo "Telegram: https://t.me/juniorsir"
+               echo ""
+               echo "1. Open GitHub"
+               echo "2. Open Telegram"
+               echo "3. Back"
+               read -p "Choose an option: " devopt
+
+               case $devopt in 
+                   1)
+                       termux-open-url "https://github.com/juniorsir"
+                       ;;
+                   2)
+                       termux-open-url "https://t.me/juniorsir"
+                       ;;
+                   3)
+                       echo "Returning..."
+                       ;;
+                   *)
+                       echo "Invalid option."
+                       ;;
+               esac
+               ;;
+        
             *) echo "Invalid option." ;;
         esac
     done
