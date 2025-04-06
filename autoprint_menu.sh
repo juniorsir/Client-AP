@@ -113,7 +113,7 @@ function show_menu() {
                echo "=== Developer Info ==="
                echo "Name: JuniorSir"
                echo "GitHub: https://github.com/juniorsir"
-               echo "Telegram: https://t.me/juniorsir"
+               echo "Telegram: https://t.me/Junior_sir"
                echo ""
                echo "1. Open GitHub"
                echo "2. Open Telegram"
@@ -125,7 +125,7 @@ function show_menu() {
                        termux-open-url "https://github.com/juniorsir"
                        ;;
                    2)
-                       termux-open-url "https://t.me/juniorsir"
+                       termux-open-url "https://t.me/Junior_sir"
                        ;;
                    3)
                        echo "Returning..."
