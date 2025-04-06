@@ -93,8 +93,7 @@ function update_from_github() {
             fi
 
             cp "$LOCAL_FOLDER"/*.sh "$HOME"
-            mv /data/data/com.termux/files/home/Client-AP/autoprint_menu.sh /data/data/com.termux/files/usr/bin/autoprint
-
+            
             echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
             echo "[✓] Update completed to version $REMOTE_VERSION."
         else
