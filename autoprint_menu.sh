@@ -108,7 +108,13 @@ function show_menu() {
     else
         echo "You already have the latest version ($LOCAL_VERSION)."
     fi
-}"1. Start AutoPrint"
+}
+
+function show_menu() {
+    while true; do
+        echo ""
+        echo "======= AutoPrint Menu ======="
+        echo "1. Start AutoPrint"
         echo "2. Stop AutoPrint"
         echo "3. Edit Configuration"
         echo "4. Reset Settings"
