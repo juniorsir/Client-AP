@@ -65,13 +65,10 @@ EOF
 }
 
 function update_from_github() {
-    echo ""
-    echo "[Checking for updates from GitHub...]"
+    echo -e "${CYAN}[Checking for updates from GitHub...]${NC}"
 
     REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
     LOCAL_VERSION_FILE="$HOME/.autoprint_version"
-    CONFIG_FILE="$HOME/.autoprint_config.json"
-    BACKUP_FILE="$HOME/.autoprint_config_backup.json"
 
     if [ ! -f "$LOCAL_VERSION_FILE" ]; then
         echo "v0.0.0" > "$LOCAL_VERSION_FILE"
@@ -81,34 +78,38 @@ function update_from_github() {
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         echo ""
-        echo "--------------------------------------------------"
+        echo -e "${YELLOW}--------------------------------------------------${NC}"
         echo -e "${YELLOW}  [!] Update available: $REMOTE_VERSION${NC}"
-        echo -e        "${CYAN}  Current version: $LOCAL_VERSION${NC}"
-        echo "--------------------------------------------------"
+        echo -e "${CYAN}  Current version: $LOCAL_VERSION${NC}"
+        echo -e "${YELLOW}--------------------------------------------------${NC}"
 
         read -p "Do you want to update now? (y/n): " confirm
         if [ "$confirm" = "y" ]; then
-            echo "[*] Backing up config..."
+            echo -e "${CYAN}[*] Backing up config...${NC}"
             [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
 
-            echo "[*] Updating scripts..."
+            echo -e "${CYAN}[*] Updating scripts...${NC}"
+            cd "$HOME" || { echo -e "${RED}Failed to change directory.${NC}"; return; }
+
             if [ -d "$LOCAL_FOLDER" ]; then
-                cd "$LOCAL_FOLDER"
-                git pull origin main
+                cd "$LOCAL_FOLDER" || { echo -e "${RED}Failed to enter repo directory.${NC}"; return; }
+                git pull origin main || { echo -e "${RED}Git pull failed.${NC}"; return; }
             else
-                git clone "$GIT_REPO" "$LOCAL_FOLDER"
+                git clone "$GIT_REPO" "$LOCAL_FOLDER" || { echo -e "${RED}Git clone failed.${NC}"; return; }
             fi
 
-            cp "$LOCAL_FOLDER"/*.sh "$HOME"
-            mv /data/data/com.termux/files/home/Client-AP/autoprint_menu.sh /data/data/com.termux/files/usr/bin/autoprint
-            
-            echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
-            echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
+            if ls "$LOCAL_FOLDER"/*.sh 1> /dev/null 2>&1; then
+                cp "$LOCAL_FOLDER"/*.sh "$HOME" || { echo -e "${RED}Failed to copy scripts.${NC}"; return; }
+                echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
+                echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
+            else
+                echo -e "${RED}[!] No .sh files found to copy. Update aborted.${NC}"
+            fi
         else
-            echo "[!] Update skipped."
+            echo -e "${YELLOW}[!] Update skipped.${NC}"
         fi
     else
-        echo "You already have the latest version ($LOCAL_VERSION)."
+        echo -e "${GREEN}You already have the latest version ($LOCAL_VERSION).${NC}"
     fi
 }
 
