@@ -1,6 +1,13 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
 clear
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
 CONFIG_FILE="$HOME/.autoprint_config.json"
 BACKUP_FILE="$HOME/.autoprint_config_backup.json"
@@ -9,7 +16,7 @@ LOCAL_FOLDER="$HOME/Client-AP"
 
 function scan_network_for_ssh() {
     echo ""
-    echo "[Scanning local network for SSH-enabled devices...]"
+    echo -e "${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
     subnet=$(ip route | grep -oP '(\d+\.\d+\.\d+)\.\d+/24' | head -n 1)
     [ -z "$subnet" ] && { echo "Unable to detect subnet."; return 1; }
 
@@ -18,12 +25,12 @@ function scan_network_for_ssh() {
         ip="$base_ip.$i"
         timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null
         if [ $? -eq 0 ]; then
-            echo "[FOUND] Possible PC with SSH: $ip"
+            echo -e "${GREEN}[FOUND] Possible PC with SSH: $ip${NC}"
             read -p "Use $ip as your PC IP? (y/n): " choice
             [ "$choice" = "y" ] && { echo "$ip"; return 0; }
         fi
     done
-    echo "No active SSH devices found."
+    echo -e "${RED}No active SSH devices found.${NC}"
     return 1
 }
 
@@ -54,7 +61,7 @@ function set_config() {
 }
 EOF
 
-    echo "Configuration saved."
+    echo -e "${GREEN}Configuration saved.${NC}"
 }
 
 function update_from_github() {
@@ -75,8 +82,8 @@ function update_from_github() {
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         echo ""
         echo "--------------------------------------------------"
-        echo "  [!] Update available: $REMOTE_VERSION"
-        echo "  Current version: $LOCAL_VERSION"
+        echo -e "${YELLOW}  [!] Update available: $REMOTE_VERSION${NC}"
+        echo -e        "${CYAN}  Current version: $LOCAL_VERSION${NC}"
         echo "--------------------------------------------------"
 
         read -p "Do you want to update now? (y/n): " confirm
@@ -93,9 +100,10 @@ function update_from_github() {
             fi
 
             cp "$LOCAL_FOLDER"/*.sh "$HOME"
+            mv /data/data/com.termux/files/home/Client-AP/autoprint_menu.sh /data/data/com.termux/files/usr/bin/autoprint
             
             echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
-            echo "[✓] Update completed to version $REMOTE_VERSION."
+            echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
         else
             echo "[!] Update skipped."
         fi
@@ -107,7 +115,7 @@ function update_from_github() {
 function show_menu() {
     while true; do
         echo ""
-        echo "======= AutoPrint Menu ======="
+        echo -e "${BLUE}======= AutoPrint Menu =======${NC}"
         echo "1. Start AutoPrint"
         echo "2. Stop AutoPrint"
         echo "3. Edit Configuration"
