@@ -57,13 +57,7 @@ EOF
     echo "Configuration saved."
 }
 
-
-
-function show_menu() {
-    while true; do
-        echo ""
-        echo "========== AutoPrint Menu =========="
-        echo function update_from_github() {
+function update_from_github() {
     echo ""
     echo "[Checking for updates from GitHub...]"
 
