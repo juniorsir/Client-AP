@@ -59,4 +59,8 @@ mv autoprint-update.sh $PREFIX/bin/autoprint-update
 
 echo -e "${GREEN}[✓] Setup complete!${RESET}"
 echo -e "${YELLOW}You can now run the bot with:${RESET}"
-echo -e "${GREEN}   cd ~/client && python autoprint.py${RESET}"
+echo -e "${GREEN}   Hold on.....${RESET}"
+
+clear
+
+autoprint-update
