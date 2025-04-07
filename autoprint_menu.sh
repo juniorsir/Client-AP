@@ -132,12 +132,16 @@ function show_menu() {
         read -p "Choose an option: " opt
 
         case $opt in
-            1) ./start_autoprint.sh ;;
-            2) ./stop_autoprint.sh ;;
+            1) termux-wake-lock
+               nohup python autoprint.py > autoprint.log 2>&1 &
+               echo "AutoPrint started. Running in background..." ;;
+            2) pkill -f autoprint.py
+               termux-wake-unlock
+               echo "AutoPrint stopped." ;;
             3) set_config ;;
             4) rm -f "$CONFIG_FILE"; echo "Settings cleared." ;;
             5) echo "Exiting."; break ;;
-            6) update_from_github ;;
+            6) termux-open-url https://github.com/juniorsir/Client-AP.git ;;
             7) 
                echo ""
                echo "=== Developer Info ==="
