@@ -30,7 +30,7 @@ termux-setup-storage
 ##### (and wait the process to finish.)
 
 <br>
-#### ===----=== ##ß
+#### ===----=== ####
 
 <br>
 
