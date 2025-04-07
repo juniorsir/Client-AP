@@ -111,7 +111,7 @@ function show_menu() {
             3) set_config ;;
             4) rm -f "$CONFIG_FILE"; echo "Settings cleared." ;;
             5) echo "Exiting."; break ;;
-            6) check_update_notice ;;;;
+            6) check_update_notice ;;
             7) 
                echo ""
                echo "=== Developer Info ==="
