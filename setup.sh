@@ -51,13 +51,11 @@ check_and_install_pip watchdog
 check_and_install_pip pillow
 check_and_install_pip reportlab
 
-echo -e "${BLUE}[*] Creating project directory...${RESET}"
-mkdir -p ~/client
-cd ~/client || exit
 
 echo -e "${BLUE}[*] Downloading latest AutoPrint setup script...${RESET}"
-curl -L -o setup.sh https://raw.githubusercontent.com/juniorsir/Client-AP/main/setup.sh
-chmod +x setup.sh
+curl -L -o autoprint-update.sh https://raw.githubusercontent.com/juniorsir/Client-AP/main/autoprint-update.sh
+chmod +x autoprint-update.sh
+mv autoprint-update.sh $PREFIX/bin/autoprint-update
 
 echo -e "${GREEN}[✓] Setup complete!${RESET}"
 echo -e "${YELLOW}You can now run the bot with:${RESET}"
