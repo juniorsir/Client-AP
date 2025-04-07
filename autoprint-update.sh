@@ -1,4 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
+clear
 
 BLUE='\033[1;34m'
 GREEN='\033[1;32m'
@@ -22,12 +23,14 @@ REMOTE_VERSION=$(curl -s "$VERSION_URL")
 LOCAL_VERSION=$(cat "$VERSION_FILE")
 
 if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-    echo ""
+        echo ""
+        echo ""
         echo -e "${YELLOW}--------------------------------------------------${NC}"
-        echo -e "${YELLOW}  [!] Update available: $REMOTE_VERSION${NC}"
-        echo -e "${CYAN}         Current version: $LOCAL_VERSION${NC}"
+        echo -e "${YELLOW}      [!] Update available: $REMOTE_VERSION${NC}"
+        echo -e "${CYAN}           Current version: $LOCAL_VERSION${NC}"
         echo -e "${YELLOW}--------------------------------------------------${NC}"
-        
+        echo ""
+        echo ""
     read -p "Do you want to update now? (y/n): " confirm
 
     if [ "$confirm" = "y" ]; then
@@ -42,12 +45,18 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
 
         echo "[*] Cloning repository..."
         git clone "$GIT_REPO" "$TEMP_FOLDER" && {
-            echo "[*] Moving updated files..."
+
+
+        echo -e "${YELLOW}[*]${GREEN}Giving permission for execution${NC}"
+
             chmod +x "$TEMP_FOLDER/autoprint_menu.sh"
-            chmod +x "$TEMP_FOLDER/autoprint_menu.sh"
-            mv "$TEMP_FOLDER/autoprint.py" "$PREFIX/bin/autoprintset"
-            mv "$TEMP_FOLDER/autoprint_menu.sh" "$PREFIX/bin/autoprint/"
-          
+            chmod +x "$TEMP_FOLDER/autoprint.py"
+
+        echo "[*] Moving updated files..."
+
+            mv "$TEMP_FOLDER/autoprint.py" "$PREFIX/bin/autoprint.py"
+            mv "$TEMP_FOLDER/autoprint_menu.sh" "$PREFIX/bin/autoprint"
+
 
             echo "$REMOTE_VERSION" > "$VERSION_FILE"
             echo -e "${GREEN}[✓] Updated to version $REMOTE_VERSION.${NC}"
@@ -56,7 +65,7 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         }
 
         echo "[*] Cleaning up..."
-        rm -rf "$TEMP_FOLDER"
+           rm -rf "${TEMP_FOLDER}"
     else
         echo "[!] Update cancelled by user."
     fi
