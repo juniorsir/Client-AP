@@ -100,7 +100,7 @@ function update_from_github() {
                 echo "[*] Moving files..."
                 cp "$LOCAL_FOLDER/autoprint.py" "$HOME/"
                 cp "$LOCAL_FOLDER/autoprint_menu.sh" "$HOME/"
-                cp "$LOCAL_FOLDER/printer_watch.sh" "$HOME/"
+                cp "$LOCAL_FOLDER/print_watch.sh" "$HOME/"
 
                 echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
                 echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
