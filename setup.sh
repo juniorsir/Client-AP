@@ -40,13 +40,14 @@ check_and_install_pkg python
 check_and_install_pkg git
 check_and_install_pkg curl
 check_and_install_pkg termux-api
+check_and_install_pkg iproute2
 check_and_install_pkg openssh
 
 echo -e "${BLUE}[*] Setting up Termux storage access...${RESET}"
 termux-setup-storage
 
 echo -e "${BLUE}[*] Installing/upgrading Python packages...${RESET}"
-pip install --upgrade pip
+python install pip
 check_and_install_pip watchdog
 check_and_install_pip pillow
 check_and_install_pip reportlab
