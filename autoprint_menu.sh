@@ -65,10 +65,14 @@ EOF
 }
 
 function update_from_github() {
-    echo -e "${CYAN}[Checking for updates from GitHub...]${NC}"
+    echo ""
+    echo "[Checking for updates from GitHub...]"
 
     REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
     LOCAL_VERSION_FILE="$HOME/.autoprint_version"
+    CONFIG_FILE="$HOME/.autoprint_config.json"
+    BACKUP_FILE="$HOME/.autoprint_config_backup.json"
+    LOCAL_FOLDER="$HOME/Client-AP"
 
     if [ ! -f "$LOCAL_VERSION_FILE" ]; then
         echo "v0.0.0" > "$LOCAL_VERSION_FILE"
@@ -78,52 +82,51 @@ function update_from_github() {
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         echo ""
-        echo -e "${YELLOW}--------------------------------------------------${NC}"
-        echo -e "${YELLOW}  [!] Update available: $REMOTE_VERSION${NC}"
-        echo -e "${CYAN}  Current version: $LOCAL_VERSION${NC}"
-        echo -e "${YELLOW}--------------------------------------------------${NC}"
+        echo "--------------------------------------------------"
+        echo "  [!] Update available: $REMOTE_VERSION"
+        echo "  Current version: $LOCAL_VERSION"
+        echo "--------------------------------------------------"
 
         read -p "Do you want to update now? (y/n): " confirm
         if [ "$confirm" = "y" ]; then
-            echo -e "${CYAN}[*] Backing up config...${NC}"
+            echo "[*] Backing up config..."
             [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
 
-            echo -e "${CYAN}[*] Updating scripts...${NC}"
-            cd "$HOME" || { echo -e "${RED}Failed to change directory.${NC}"; return; }
-
+            echo "[*] Updating scripts..."
             if [ -d "$LOCAL_FOLDER" ]; then
-                cd "$LOCAL_FOLDER" || { echo -e "${RED}Failed to enter repo directory.${NC}"; return; }
-                git pull origin main || { echo -e "${RED}Git pull failed.${NC}"; return; }
+                cd "$LOCAL_FOLDER" && git pull origin main
             else
-                git clone "$GIT_REPO" "$LOCAL_FOLDER" || { echo -e "${RED}Git clone failed.${NC}"; return; }
+                git clone "$GIT_REPO" "$LOCAL_FOLDER" || { echo "[!] Git clone failed."; return; }
             fi
 
-            if ls "$LOCAL_FOLDER"/*.sh 1> /dev/null 2>&1; then
-                cp "$LOCAL_FOLDER"/*.sh "$HOME" || { echo -e "${RED}Failed to copy scripts.${NC}"; return; }
+            if ls "$LOCAL_FOLDER"/*.sh 1>/dev/null 2>&1; then
+                mkdir -p "$HOME/bin"
+                cp "$LOCAL_FOLDER"/*.sh "$HOME/bin/"
 
-                # Rename the main script to 'autoprint' and make executable
-                if [ -f "$HOME/autoprint_menu.sh" ]; then
-                    mv "$HOME/autoprint_menu.sh" "$HOME/autoprint"
-                    chmod +x "$HOME/autoprint"
-                    echo -e "${GREEN}[*] 'autoprint' command is now ready.${NC}"
+                # Rename and chmod autoprint
+                if [ -f "$HOME/bin/autoprint_menu.sh" ]; then
+                    mv "$HOME/bin/autoprint_menu.sh" "$HOME/bin/autoprint"
+                    chmod +x "$HOME/bin/autoprint"
+                    echo "[✓] 'autoprint' is now available as a command."
                 fi
 
-                # Ensure $HOME is in PATH
-                SHELL_RC="$HOME/.bashrc"
-                if [ -n "$ZSH_VERSION" ]; then SHELL_RC="$HOME/.zshrc"; fi
-                grep -q 'export PATH="$HOME:$PATH"' "$SHELL_RC" 2>/dev/null || echo 'export PATH="$HOME:$PATH"' >> "$SHELL_RC"
-                export PATH="$HOME:$PATH"
+                # Ensure ~/bin is in PATH
+                if ! echo "$PATH" | grep -q "$HOME/bin"; then
+                    echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
+                    export PATH="$HOME/bin:$PATH"
+                    echo "[*] Added ~/bin to PATH"
+                fi
 
                 echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
-                echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
+                echo "[✓] Update completed to version $REMOTE_VERSION."
             else
-                echo -e "${RED}[!] No .sh files found to copy. Update aborted.${NC}"
+                echo "[!] No .sh scripts found in repo. Skipping update."
             fi
         else
-            echo -e "${YELLOW}[!] Update skipped.${NC}"
+            echo "[!] Update skipped."
         fi
     else
-        echo -e "${GREEN}You already have the latest version ($LOCAL_VERSION).${NC}"
+        echo "You already have the latest version ($LOCAL_VERSION)."
     fi
 }
 
