@@ -64,57 +64,25 @@ EOF
     echo -e "${GREEN}Configuration saved.${NC}"
 }
 
-function update_from_github() {
-    echo ""
-    echo -e "${BLUE}[Checking for updates from GitHub...]${NC}"
-
+function check_update_notice() {
     REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
-    LOCAL_VERSION_FILE="$HOME/.autoprint_version"
-    LOCAL_FOLDER="$HOME/Client-AP"
-    CONFIG_FILE="$HOME/.autoprint_config.json"
-    BACKUP_FILE="$HOME/.autoprint_config_backup.json"
-
-    [ ! -f "$LOCAL_VERSION_FILE" ] && echo "v0.0.0" > "$LOCAL_VERSION_FILE"
-    LOCAL_VERSION=$(cat "$LOCAL_VERSION_FILE")
+    VERSION_FILE="$HOME/.autoprint_version"
+    
+    [ ! -f "$VERSION_FILE" ] && echo "v0.0.0" > "$VERSION_FILE"
+    LOCAL_VERSION=$(cat "$VERSION_FILE")
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-        echo ""
-        echo -e "${YELLOW}--------------------------------------------------${NC}"
-        echo -e "${YELLOW}  [!] Update available: $REMOTE_VERSION${NC}"
-        echo -e "${YELLOW}  Current version: $LOCAL_VERSION${NC}"
-        echo -e "${YELLOW}--------------------------------------------------${NC}"
-
+        echo -e "${YELLOW}[!] New version available: $REMOTE_VERSION${NC}"
+        echo -e "    Current version: $LOCAL_VERSION"
         read -p "Do you want to update now? (y/n): " confirm
         if [ "$confirm" = "y" ]; then
-            echo "[*] Backing up config..."
-            [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
-
-            echo "[*] Removing old scripts..."
-            rm -f "$HOME/autoprint.py" "$HOME/autoprint_menu.sh" "$HOME/printer_watch.sh"
-
-            echo "[*] Preparing local folder..."
-            [ -d "$LOCAL_FOLDER" ] || mkdir -p "$LOCAL_FOLDER"
-
-            echo "[*] Cloning repository..."
-            git clone "$GIT_REPO" "$LOCAL_FOLDER" && {
-                echo "[*] Moving files..."
-                cp "$LOCAL_FOLDER/autoprint.py" "$HOME/"
-                cp "$LOCAL_FOLDER/autoprint_menu.sh" "$HOME/"
-                cp "$LOCAL_FOLDER/print_watch.sh" "$HOME/"
-
-                echo "$REMOTE_VERSION" > "$LOCAL_VERSION_FILE"
-                echo -e "${GREEN}[✓] Update completed to version $REMOTE_VERSION.${NC}"
-            } || {
-                echo -e "${RED}[✗] Update failed. Version file not changed.${NC}"
-            }
-
-            echo "[*] Cleaning up..."
-            rm -rf "$LOCAL_FOLDER"
+            echo -e "${BLUE}Running updater...${NC}"
+            autoprint-update
         else
-            echo "[!] Update skipped."
+            echo "Update skipped."
         fi
     else
-        echo "You already have the latest version ($LOCAL_VERSION)."
+        echo -e "${GREEN}You already have the latest version ($LOCAL_VERSION).${NC}"
     fi
 }
 
@@ -143,7 +111,7 @@ function show_menu() {
             3) set_config ;;
             4) rm -f "$CONFIG_FILE"; echo "Settings cleared." ;;
             5) echo "Exiting."; break ;;
-            6) termux-open-url https://github.com/juniorsir/Client-AP.git ;;
+            6) check_update_notice ;;;;
             7) 
                echo ""
                echo "=== Developer Info ==="
