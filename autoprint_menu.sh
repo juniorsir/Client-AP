@@ -145,5 +145,5 @@ function show_menu() {
     done
 }
 
-update_from_github
+check_update_notice
 show_menu
