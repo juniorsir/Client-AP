@@ -33,25 +33,34 @@ check_and_install_pip() {
 }
 
 echo -e "${BLUE}[*] Updating pkg sources...${RESET}"
-pkg update -y
+apt update && apt upgrade -y
 
-echo -e "${BLUE}[*] Installing required packages...${RESET}"
+echo -e "${BLUE}[*] Installing core packages...${RESET}"
 check_and_install_pkg python
+check_and_install_pkg make
+check_and_install_pkg wget
+check_and_install_pkg clang
+check_and_install_pkg libjpeg-turbo
+check_and_install_pkg freetype
 check_and_install_pkg git
 check_and_install_pkg curl
 check_and_install_pkg termux-api
 check_and_install_pkg iproute2
 check_and_install_pkg openssh
+check_and_install_pkg termux-exec
 
 echo -e "${BLUE}[*] Setting up Termux storage access...${RESET}"
 termux-setup-storage
 
-echo -e "${BLUE}[*] Installing/upgrading Python packages...${RESET}"
-python install pip
-check_and_install_pip watchdog
-check_and_install_pip pillow
-check_and_install_pip reportlab
+echo -e "${BLUE}[*] Installing/upgrading Python tools...${RESET}"
+pip install --upgrade pip setuptools wheel
 
+echo -e "${BLUE}[*] Installing Pillow with build flags...${RESET}"
+env INCLUDE="$PREFIX/include" LDFLAGS=" -lm" pip install Pillow
+
+echo -e "${BLUE}[*] Installing remaining Python modules...${RESET}"
+check_and_install_pip watchdog
+check_and_install_pip reportlab
 
 echo -e "${BLUE}[*] Downloading latest AutoPrint setup script...${RESET}"
 curl -L -o autoprint-update.sh https://raw.githubusercontent.com/juniorsir/Client-AP/main/autoprint-update.sh
@@ -60,8 +69,7 @@ mv autoprint-update.sh $PREFIX/bin/autoprint-update
 
 echo -e "${GREEN}[✓] Setup complete!${RESET}"
 echo -e "${YELLOW}You can now run the bot with:${RESET}"
-echo -e "${GREEN}   Hold on.....${RESET}"
+echo -e "${GREEN}   autoprint-update${RESET}"
 
 clear
-
 autoprint-update
