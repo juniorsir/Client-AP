@@ -235,7 +235,7 @@ def start_watcher(paths, config):
     observer.join()
 
 if __name__ == "__main__":
-    config = ask_config()
+    
     folders = [
     "/storage/emulated/0/DCIM/Camera",
     "/storage/emulated/0/Download",
