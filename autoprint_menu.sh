@@ -206,6 +206,6 @@ function show_menu() {
     done
 }
 
-set_config
 check_update_notice
+set_config
 show_menu
