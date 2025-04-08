@@ -1,4 +1,44 @@
+function scan_network_for_ssh() {
+    echo -e "\n${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
+    
+    # Try using `ip route` first
+    subnet=$(ip route 2>/dev/null | grep -oP '(\d+\.\d+\.\d+)\.\d+/24' | head -n 1)
 
+    # Fallback using `ifconfig` if needed
+    if [ -z "$subnet" ]; then
+        if ! ifconfig_output=$(ifconfig 2>&1); then
+            echo -e "${YELLOW}Warning: ${RED}cannot access network interfaces (Permission denied)${NC}"
+            echo -e "${YELLOW}Skipping IP auto-detection. Please send the file manually via SSH, or enter the IP manually.${NC}"
+            return 1
+        fi
+
+        # Try to extract IP from fallback output if available
+        fallback_ip=$(echo "$ifconfig_output" | grep -oP 'inet\s+\K10(\.\d+){3}' | head -n 1)
+        if [ -n "$fallback_ip" ]; then
+            base_ip=$(echo "$fallback_ip" | cut -d'.' -f1-3)
+        else
+            echo -e "${YELLOW}Network not detected. Please send the file manually.${NC}"
+            return 1
+        fi
+    else
+        base_ip=$(echo "$subnet" | cut -d'/' -f1 | cut -d'.' -f1-3)
+    fi
+
+    # Proceed with SSH scan
+    for i in $(seq 1 254); do
+        ip="$base_ip.$i"
+        echo -ne "${CYAN}Checking $ip...\r${NC}"
+        timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}[FOUND] Possible SSH device: $ip${NC}"
+            read -p "  ${YELLOW}Use $ip as your PC IP? (y/n): ${NC}" choice
+            [ "$choice" = "y" ] && { echo "$ip"; return 0; }
+        fi
+    done
+
+    echo -e "${RED}No active SSH devices found. Please send file manually or check network.${NC}"
+    return 1
+}
     done
 }
 
@@ -20,59 +60,6 @@ BACKUP_FILE="$HOME/.autoprint_config_backup.json"
 GIT_REPO="https://github.com/juniorsir/Client-AP.git"
 LOCAL_FOLDER="$HOME/Client-AP"
 
-function scan_network_for_ssh() {
-    echo -e "\n${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
-
-    # Try using `ip route` for subnet
-    subnet=$(ip route | grep -oP '(\d+\.\d+\.\d+)\.\d+/24' | head -n 1)
-
-    # Fallback to `ifconfig` if necessary
-    if [ -z "$subnet" ]; then
-        if ! command -v ifconfig >/dev/null 2>&1; then
-            echo -e "${YELLOW}Installing net-tools for ifconfig...${NC}"
-            pkg install net-tools -y >/dev/null
-        fi
-        subnet=$(ifconfig | grep inet | grep -v 127.0.0.1 | awk '{print $2}' | cut -d'.' -f1-3 | head -n1)
-        [ -n "$subnet" ] && subnet="${subnet}.0/24"
-    fi
-
-    if [ -z "$subnet" ]; then
-        echo -e "${RED}Unable to detect subnet.${NC}"
-        return 1
-    fi
-
-    base_ip=$(echo "$subnet" | cut -d'/' -f1 | cut -d'.' -f1-3)
-
-    spinner="/-\|"
-    echo -ne "${YELLOW}Searching: ${NC}"
-
-    for i in $(seq 1 254); do
-        ip="$base_ip.$i"
-        timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null &
-        pid=$!
-        
-        spin_i=0
-        while kill -0 $pid 2>/dev/null; do
-            spin_i=$(( (spin_i+1) %4 ))
-            printf "\b${spinner:$spin_i:1}"
-            sleep 0.1
-        done
-
-        wait $pid
-        if [ $? -eq 0 ]; then
-            echo -e "\b${GREEN}[FOUND] Possible SSH device: $ip${NC}"
-            read -p "  ${YELLOW}Use $ip as your PC IP? (y/n): ${NC}" choice
-            if [ "$choice" = "y" ]; then
-                echo "$ip" > /tmp/autoprint_ip.tmp
-                return 0
-            fi
-            echo -ne "${YELLOW}Searching: ${NC}"
-        fi
-    done
-
-    echo -e "\b${RED}No active SSH devices found.${NC}"
-    return 1
-}
 
 function set_config() {
     echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
