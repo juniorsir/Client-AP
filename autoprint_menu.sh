@@ -1,3 +1,9 @@
+
+    done
+}
+
+check_update_notice
+show_menu
 #!/data/data/com.termux/files/usr/bin/bash
 
 clear
@@ -15,41 +21,76 @@ GIT_REPO="https://github.com/juniorsir/Client-AP.git"
 LOCAL_FOLDER="$HOME/Client-AP"
 
 function scan_network_for_ssh() {
-    echo ""
-    echo -e "${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
+    echo -e "\n${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
+
+    # Try using `ip route` for subnet
     subnet=$(ip route | grep -oP '(\d+\.\d+\.\d+)\.\d+/24' | head -n 1)
-    [ -z "$subnet" ] && { echo "Unable to detect subnet."; return 1; }
+
+    # Fallback to `ifconfig` if necessary
+    if [ -z "$subnet" ]; then
+        if ! command -v ifconfig >/dev/null 2>&1; then
+            echo -e "${YELLOW}Installing net-tools for ifconfig...${NC}"
+            pkg install net-tools -y >/dev/null
+        fi
+        subnet=$(ifconfig | grep inet | grep -v 127.0.0.1 | awk '{print $2}' | cut -d'.' -f1-3 | head -n1)
+        [ -n "$subnet" ] && subnet="${subnet}.0/24"
+    fi
+
+    if [ -z "$subnet" ]; then
+        echo -e "${RED}Unable to detect subnet.${NC}"
+        return 1
+    fi
 
     base_ip=$(echo "$subnet" | cut -d'/' -f1 | cut -d'.' -f1-3)
+
+    spinner="/-\|"
+    echo -ne "${YELLOW}Searching: ${NC}"
+
     for i in $(seq 1 254); do
         ip="$base_ip.$i"
-        timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null
+        timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null &
+        pid=$!
+        
+        spin_i=0
+        while kill -0 $pid 2>/dev/null; do
+            spin_i=$(( (spin_i+1) %4 ))
+            printf "\b${spinner:$spin_i:1}"
+            sleep 0.1
+        done
+
+        wait $pid
         if [ $? -eq 0 ]; then
-            echo -e "${GREEN}[FOUND] Possible PC with SSH: $ip${NC}"
-            read -p "Use $ip as your PC IP? (y/n): " choice
-            [ "$choice" = "y" ] && { echo "$ip"; return 0; }
+            echo -e "\b${GREEN}[FOUND] Possible SSH device: $ip${NC}"
+            read -p "  ${YELLOW}Use $ip as your PC IP? (y/n): ${NC}" choice
+            if [ "$choice" = "y" ]; then
+                echo "$ip" > /tmp/autoprint_ip.tmp
+                return 0
+            fi
+            echo -ne "${YELLOW}Searching: ${NC}"
         fi
     done
-    echo -e "${RED}No active SSH devices found.${NC}"
+
+    echo -e "\b${RED}No active SSH devices found.${NC}"
     return 1
 }
 
 function set_config() {
-    echo ""
-    echo "Updating configuration..."
+    echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
+    
     auto_ip=$(scan_network_for_ssh)
-    if [ -n "$auto_ip" ]; then
-        pc_ip=$auto_ip
+    if [ -f /tmp/autoprint_ip.tmp ]; then
+       pc_ip=$(cat /tmp/autoprint_ip.tmp)
+       rm /tmp/autoprint_ip.tmp
     else
         read -p "Enter PC IP address: " pc_ip
     fi
 
-    read -p "Enter PC username: " pc_user
-    read -p "Enter PC folder (e.g. /home/user/printjobs): " folder
-    read -p "Default image width in mm (e.g. 120): " width
-    read -p "Always ask for image position? (y/n): " ask_pos
+    read -p "${YELLOW}Enter PC username: ${NC}" pc_user
+    read -p "${YELLOW}Enter PC folder (e.g. /home/user/printjobs): ${NC}" folder
+    read -p "${YELLOW}Default image width in mm (e.g. 120): ${NC}" width
+    read -p "${YELLOW}Always ask for image position? (y/n): ${NC}" ask_pos
     ask_flag=true
-    [ "$ask_pos" = "n" ] || [ "$ask_pos" = "N" ] && ask_flag=false
+    [[ "$ask_pos" =~ ^[nN]$ ]] && ask_flag=false
 
     cat <<EOF > "$CONFIG_FILE"
 {
@@ -61,89 +102,90 @@ function set_config() {
 }
 EOF
 
-    echo -e "${GREEN}Configuration saved.${NC}"
+    echo -e "${GREEN}Configuration saved successfully.${NC}"
 }
 
 function check_update_notice() {
     REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
     VERSION_FILE="$HOME/.autoprint_version"
-    
     [ ! -f "$VERSION_FILE" ] && echo "v0.0.0" > "$VERSION_FILE"
     LOCAL_VERSION=$(cat "$VERSION_FILE")
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         echo -e "${YELLOW}[!] New version available: $REMOTE_VERSION${NC}"
         echo -e "    Current version: $LOCAL_VERSION"
-        read -p "Do you want to update now? (y/n): " confirm
+        read -p "${CYAN}Do you want to update now? (y/n): ${NC}" confirm
         if [ "$confirm" = "y" ]; then
             echo -e "${BLUE}Running updater...${NC}"
             autoprint-update
         else
-            echo "Update skipped."
+            echo -e "${YELLOW}Update skipped.${NC}"
         fi
     else
-        echo -e "${GREEN}You already have the latest version ($LOCAL_VERSION).${NC}"
+        echo -e "${GREEN}You're using the latest version ($LOCAL_VERSION).${NC}"
     fi
 }
 
 function show_menu() {
     while true; do
-        echo ""
-        echo -e "${BLUE}======= AutoPrint Menu =======${NC}"
-        echo "1. Start AutoPrint"
-        echo "2. Stop AutoPrint"
-        echo "3. Edit Configuration"
-        echo "4. Reset Settings"
-        echo "5. Exit"
-        echo "6. Check for Updates"
-        echo "7. Developer Info"
-    
-        echo "===================================="
-        read -p "Choose an option: " opt
+        echo -e "\n${BLUE}======= AutoPrint Menu =======${NC}"
+        echo -e "${YELLOW}1.${NC} Start AutoPrint"
+        echo -e "${YELLOW}2.${NC} Stop AutoPrint"
+        echo -e "${YELLOW}3.${NC} Edit Configuration"
+        echo -e "${YELLOW}4.${NC} Reset Settings"
+        echo -e "${YELLOW}5.${NC} Exit"
+        echo -e "${YELLOW}6.${NC} Check for Updates"
+        echo -e "${YELLOW}7.${NC} Developer Info"
+        echo -e "${BLUE}===============================${NC}"
+
+        read -p $'\033[0;36mChoose an option: \033[0m' opt
 
         case $opt in
-            1) termux-wake-lock
-               nohup python autoprint.py > autoprint.log 2>&1 &
-               echo "AutoPrint started. Running in background..." ;;
-            2) pkill -f autoprint.py
-               termux-wake-unlock
-               echo "AutoPrint stopped." ;;
-            3) set_config ;;
-            4) rm -f "$CONFIG_FILE"; echo "Settings cleared." ;;
-            5) echo "Exiting."; break ;;
-            6) check_update_notice ;;
-            7) 
-               echo ""
-               echo "=== Developer Info ==="
-               echo "Name: JuniorSir"
-               echo "GitHub: https://github.com/juniorsir"
-               echo "Telegram: https://t.me/Junior_sir"
-               echo ""
-               echo "1. Open GitHub"
-               echo "2. Open Telegram"
-               echo "3. Back"
-               read -p "Choose an option: " devopt
+            1)
+                termux-wake-lock
+                echo -e "${CYAN}Starting AutoPrint...${NC}"
+    
+                nohup python $PREFIX/bin/autoprint.py > autoprint.log 2>&1 &
+                sleep 2  # give it a moment to fail if it will
 
-               case $devopt in 
-                   1)
-                       termux-open-url "https://github.com/juniorsir"
-                       ;;
-                   2)
-                       termux-open-url "https://t.me/Junior_sir"
-                       ;;
-                   3)
-                       echo "Returning..."
-                       ;;
-                   *)
-                       echo "Invalid option."
-                       ;;
-               esac
-               ;;
-        
-            *) echo "Invalid option." ;;
+                if pgrep -f autoprint.py > /dev/null; then
+                echo -e "${GREEN}AutoPrint started successfully and is running in the background.${NC}"
+            else
+                echo -e "${RED}Failed to start AutoPrint. Check autoprint.log for details.${NC}"
+                termux-wake-unlock
+            fi
+            ;;
+            2)
+                pkill -f autoprint.py
+                termux-wake-unlock
+                echo -e "${RED}AutoPrint stopped.${NC}" ;;
+            3) set_config ;;
+            4) rm -f "$CONFIG_FILE"
+               echo -e "${RED}Settings cleared.${NC}" ;;
+            5) echo -e "${CYAN}Exiting.${NC}"; break ;;
+            6) check_update_notice ;;
+            7)
+                echo -e "\n${CYAN}=== Developer Info ===${NC}"
+                echo -e "Name: ${GREEN}JuniorSir${NC}"
+                echo -e "GitHub: ${BLUE}https://github.com/juniorsir${NC}"
+                echo -e "Telegram: ${BLUE}https://t.me/Junior_sir${NC}"
+                echo ""
+                echo -e "${YELLOW}1.${NC} Open GitHub"
+                echo -e "${YELLOW}2.${NC} Open Telegram"
+                echo -e "${YELLOW}3.${NC} Back"
+                read -p "${CYAN}Choose an option: ${NC}" devopt
+
+                case $devopt in 
+                    1) termux-open-url "https://github.com/juniorsir" ;;
+                    2) termux-open-url "https://t.me/Junior_sir" ;;
+                    3) echo -e "${CYAN}Returning...${NC}" ;;
+                    *) echo -e "${RED}Invalid option.${NC}" ;;
+                esac ;;
+            *) echo -e "${RED}Invalid option.${NC}" ;;
         esac
     done
 }
 
+set_config
 check_update_notice
 show_menu
