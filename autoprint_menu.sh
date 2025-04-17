@@ -71,7 +71,8 @@ function scan_network_for_ssh() {
 function set_config() {
     echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
 
-    read -p "${YELLOW}Auto-detect PC IP? (y/n): ${NC}" auto_choice
+    # Yellow colored prompt using escape codes
+    read -p $'\033[1;33mAuto-detect PC IP? (y/n): \033[0m' auto_choice
     if [[ "$auto_choice" =~ ^[yY]$ ]]; then
         auto_ip=$(scan_network_for_ssh)
         if [ -f /tmp/autoprint_ip.tmp ]; then
@@ -86,10 +87,10 @@ function set_config() {
         read -p "Enter PC IP address: " pc_ip
     fi
 
-    read -p "${YELLOW}Enter PC username: ${NC}" pc_user
-    read -p "${YELLOW}Enter PC folder (e.g. /home/user/printjobs): ${NC}" folder
-    read -p "${YELLOW}Default image width in mm (e.g. 120): ${NC}" width
-    read -p "${YELLOW}Always ask for image position? (y/n): ${NC}" ask_pos
+    read -p $'\033[1;33mEnter PC username: \033[0m' pc_user
+    read -p $'\033[1;33mEnter PC folder (e.g. /home/user/printjobs): \033[0m' folder
+    read -p $'\033[1;33mDefault image width in mm (e.g. 120): \033[0m' width
+    read -p $'\033[1;33mAlways ask for image position? (y/n): \033[0m' ask_pos
     ask_flag=true
     [[ "$ask_pos" =~ ^[nN]$ ]] && ask_flag=false
 
