@@ -116,19 +116,18 @@ function check_update_notice() {
     LOCAL_VERSION=$(cat "$VERSION_FILE")
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-        echo -e "${GREEN}[!] New version available: v0.0.2${NC}"
-        
-        echo -e "    Current version: v0.0.1"
+        echo -e "\033[1;33m[!] New version available: $REMOTE_VERSION\033[0m"
+        echo -e "    Current version: $LOCAL_VERSION"
         echo
         read -p $'\033[1;33mDo you want to update now? (y/n): \033[0m' update_choice
-        if [ "$confirm" = "y" ]; then
-            echo -e "${BLUE}Running updater...${NC}"
+        if [[ "$update_choice" =~ ^[yY]$ ]]; then
+            echo -e "\033[1;34mRunning updater...\033[0m"
             autoprint-update
         else
-            echo -e "${YELLOW}Update skipped.${NC}"
+            echo -e "\033[0;33mUpdate skipped.\033[0m"
         fi
     else
-        echo -e "${GREEN}You're using the latest version ($LOCAL_VERSION).${NC}"
+        echo -e "\033[1;32mYou're using the latest version ($LOCAL_VERSION).\033[0m"
     fi
 }
 
