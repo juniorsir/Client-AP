@@ -44,7 +44,7 @@ function scan_network_for_ssh() {
         ip="$base_ip.$i"
         timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null &
         pid=$!
-        
+
         spin_i=0
         while kill -0 $pid 2>/dev/null; do
             spin_i=$(( (spin_i+1) %4 ))
@@ -70,11 +70,18 @@ function scan_network_for_ssh() {
 
 function set_config() {
     echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
-    
-    auto_ip=$(scan_network_for_ssh)
-    if [ -f /tmp/autoprint_ip.tmp ]; then
-       pc_ip=$(cat /tmp/autoprint_ip.tmp)
-       rm /tmp/autoprint_ip.tmp
+
+    read -p "${YELLOW}Auto-detect PC IP? (y/n): ${NC}" auto_choice
+    if [[ "$auto_choice" =~ ^[yY]$ ]]; then
+        auto_ip=$(scan_network_for_ssh)
+        if [ -f /tmp/autoprint_ip.tmp ]; then
+            pc_ip=$(cat /tmp/autoprint_ip.tmp)
+            rm /tmp/autoprint_ip.tmp
+            echo -e "${GREEN}Detected PC IP: $pc_ip${NC}"
+        else
+            echo -e "${RED}No PC found automatically. Please enter manually.${NC}"
+            read -p "Enter PC IP address: " pc_ip
+        fi
     else
         read -p "Enter PC IP address: " pc_ip
     fi
