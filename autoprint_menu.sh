@@ -116,7 +116,7 @@ function check_update_notice() {
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         echo -e "${YELLOW}[!] New version available: $REMOTE_VERSION${NC}"
         echo -e "    Current version: $LOCAL_VERSION"
-        read -p "${CYAN}Do you want to update now? (y/n): ${NC}" confirm
+        read -p "$'\033[0;31mDo you want to update now? (y/n): \033[0m'" confirm
         if [ "$confirm" = "y" ]; then
             echo -e "${BLUE}Running updater...${NC}"
             autoprint-update
