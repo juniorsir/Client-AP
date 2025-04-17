@@ -72,4 +72,5 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
 else
     echo -e "${GREEN}You already have the latest version ($LOCAL_VERSION).${NC}"
 fi
+echo
 echo -e "${YELLOW}  To start using AutoPrint, simply run: ${GREEN}autoprint${YELLOW}  ($REMOTE_VERSION)${NC}"
