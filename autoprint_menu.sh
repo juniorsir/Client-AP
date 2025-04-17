@@ -55,6 +55,7 @@ function scan_network_for_ssh() {
         wait $pid
         if [ $? -eq 0 ]; then
             echo -e "\b${GREEN}[FOUND] Possible SSH device: $ip${NC}"
+            echo
             read -p "  ${YELLOW}Use $ip as your PC IP? (y/n): ${NC}" choice
             if [ "$choice" = "y" ]; then
                 echo "$ip" > /tmp/autoprint_ip.tmp
@@ -70,6 +71,7 @@ function scan_network_for_ssh() {
 
 function set_config() {
     echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
+    echo
 
     # Yellow colored prompt using escape codes
     read -p $'\033[1;33mAuto-detect PC IP? (y/n): \033[0m' auto_choice
