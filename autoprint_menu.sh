@@ -70,6 +70,20 @@ function scan_network_for_ssh() {
 }
 
 function set_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${YELLOW}A saved configuration was found:${NC}"
+        cat "$CONFIG_FILE" | jq
+        echo
+        read -p $'\033[1;33mDo you want to use this saved config? (y/n): \033[0m' use_saved
+
+        if [[ "$use_saved" =~ ^[yY]$ ]]; then
+            echo -e "${GREEN}Using existing config.${NC}"
+            return
+        else
+            echo -e "${CYAN}Proceeding to create new configuration...${NC}"
+        fi
+    fi
+
     echo -e "\n${CYAN}-- AutoPrint Configuration Setup --${NC}"
     echo
 
@@ -108,7 +122,36 @@ EOF
 
     echo -e "${GREEN}Configuration saved successfully.${NC}"
 }
+clear
+function view_live_log() {
+    echo -e "${CYAN}Press Ctrl+C to stop viewing and return to the menu.${NC}"
+    
+    trap "echo -e '\n${YELLOW}Returning to menu...${NC}'; trap - INT; return" INT
+    tail -f autoprint.log
+    trap - INT  # Reset the trap afterward
+}
+clear
+function ask_position_pref() {
+    echo -e "\n${CYAN}[Choose image position]${NC}"
+    echo -e "${YELLOW}1.${NC} Top-Left"
+    echo -e "${YELLOW}2.${NC} Center"
+    echo -e "${YELLOW}3.${NC} Bottom-Right"
+    read -p $'\033[1;33mEnter choice (1/2/3): \033[0m' choice
 
+    pos_code="center"
+    case "$choice" in
+        1) pos_code="top-left" ;;
+        2) pos_code="center" ;;
+        3) pos_code="bottom-right" ;;
+        *) echo -e "${RED}Invalid choice. Defaulting to Center.${NC}" ;;
+    esac
+
+    # Inject selected position into config
+    tmp_config=$(mktemp)
+    jq ".image_position = \"$pos_code\"" "$CONFIG_FILE" > "$tmp_config" && mv "$tmp_config" "$CONFIG_FILE"
+    echo -e "${GREEN}Image position set to: $pos_code${NC}"
+}
+clear
 function check_update_notice() {
     REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt)
     VERSION_FILE="$HOME/.autoprint_version"
@@ -130,7 +173,7 @@ function check_update_notice() {
         echo -e "\033[1;32mYou're using the latest version ($LOCAL_VERSION).\033[0m"
     fi
 }
-
+clear
 function show_menu() {
     while true; do
         echo -e "\n${BLUE}======= AutoPrint Menu =======${NC}"
@@ -140,16 +183,18 @@ function show_menu() {
         echo -e "${YELLOW}4.${NC} Reset Settings"
         echo -e "${YELLOW}5.${NC} Exit"
         echo -e "${YELLOW}6.${NC} Check for Updates"
-        echo -e "${YELLOW}7.${NC} Developer Info"
+        echo -e "${YELLOW}7.${NC} View Live Log"
+        echo -e "${YELLOW}8.${NC} Developer Info"
         echo -e "${BLUE}===============================${NC}"
 
         read -p $'\033[0;36mChoose an option: \033[0m' opt
 
         case $opt in
-            1)
+            1) 
+                > $HOME/autoprint.log
                 termux-wake-lock
                 echo -e "${CYAN}Starting AutoPrint...${NC}"
-    
+                ask_position_pref    
                 nohup python $PREFIX/bin/autoprint.py > autoprint.log 2>&1 &
                 sleep 2  # give it a moment to fail if it will
 
@@ -169,7 +214,8 @@ function show_menu() {
                echo -e "${RED}Settings cleared.${NC}" ;;
             5) echo -e "${CYAN}Exiting.${NC}"; break ;;
             6) check_update_notice ;;
-            7)
+            7) view_live_log ;;
+            8)
                 echo -e "\n${CYAN}=== Developer Info ===${NC}"
                 echo -e "Name: ${GREEN}JuniorSir${NC}"
                 echo -e "GitHub: ${BLUE}https://github.com/juniorsir${NC}"
@@ -178,7 +224,7 @@ function show_menu() {
                 echo -e "${YELLOW}1.${NC} Open GitHub"
                 echo -e "${YELLOW}2.${NC} Open Telegram"
                 echo -e "${YELLOW}3.${NC} Back"
-                read -p "${CYAN}Choose an option: ${NC}" devopt
+                read -p $'\033[0;36mChoose an option: \033[0m' devopt
 
                 case $devopt in 
                     1) termux-open-url "https://github.com/juniorsir" ;;
