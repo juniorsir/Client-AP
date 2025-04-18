@@ -8,6 +8,9 @@ RED='\033[1;31m'
 CYAN='\033[1;36m'
 NC='\033[0m'
 
+AUTO_CONFIRM=0
+[[ "$1" == "--yes" ]] && AUTO_CONFIRM=1
+
 GIT_REPO="https://github.com/juniorsir/Client-AP.git"
 TEMP_FOLDER="$HOME/Client-AP"
 VERSION_URL="https://raw.githubusercontent.com/juniorsir/Client-AP/main/version.txt"
@@ -30,39 +33,44 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     echo -e "${CYAN}    Current version: ${LOCAL_VERSION}${NC}"
     echo -e "${YELLOW}--------------------------------------------------${NC}"
     echo ""
-    read -p "Do you want to update now? (y/n): " confirm
 
-    if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}[*] Backing up config...${NC}"
-        [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
-
-        echo -e "${BLUE}[*] Removing old scripts...${NC}"
-        rm -f "$PREFIX/bin/autoprintset" "$PREFIX/bin/autoprint"
-
-        echo -e "${BLUE}[*] Creating temporary folder...${NC}"
-        mkdir -p "$TEMP_FOLDER"
-
-        echo -e "${BLUE}[*] Cloning repository...${NC}"
-        if git clone "$GIT_REPO" "$TEMP_FOLDER"; then
-            echo -e "${YELLOW}[*]${GREEN} Giving permission for execution${NC}"
-            chmod +x "$TEMP_FOLDER/autoprint_menu.sh"
-            chmod +x "$TEMP_FOLDER/autoprint.py"
-
-            echo -e "${BLUE}[*] Moving updated files...${NC}"
-            mv "$TEMP_FOLDER/autoprint.py" "$PREFIX/bin/autoprint.py"
-            mv "$TEMP_FOLDER/autoprint_menu.sh" "$PREFIX/bin/autoprint"
-
-            echo "$REMOTE_VERSION" > "$VERSION_FILE"
-            echo -e "${GREEN}[✓] Updated to version $REMOTE_VERSION.${NC}"
-        else
-            echo -e "${RED}[✗] Update failed. Keeping current version.${NC}"
+    if [ "$AUTO_CONFIRM" -eq 0 ]; then
+        read -p "Do you want to update now? (y/n): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo -e "${RED}[!] Update cancelled by user.${NC}"
+            exit 0
         fi
-
-        echo -e "${BLUE}[*] Cleaning up...${NC}"
-        rm -rf "$TEMP_FOLDER"
     else
-        echo -e "${RED}[!] Update cancelled by user.${NC}"
+        echo -e "${BLUE}[*] Auto-confirm enabled. Proceeding with update...${NC}"
     fi
+
+    echo -e "${BLUE}[*] Backing up config...${NC}"
+    [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
+
+    echo -e "${BLUE}[*] Removing old scripts...${NC}"
+    rm -f "$PREFIX/bin/autoprintset" "$PREFIX/bin/autoprint"
+
+    echo -e "${BLUE}[*] Creating temporary folder...${NC}"
+    mkdir -p "$TEMP_FOLDER"
+
+    echo -e "${BLUE}[*] Cloning repository...${NC}"
+    if git clone "$GIT_REPO" "$TEMP_FOLDER"; then
+        echo -e "${YELLOW}[*]${GREEN} Giving permission for execution${NC}"
+        chmod +x "$TEMP_FOLDER/autoprint_menu.sh"
+        chmod +x "$TEMP_FOLDER/autoprint.py"
+
+        echo -e "${BLUE}[*] Moving updated files...${NC}"
+        mv "$TEMP_FOLDER/autoprint.py" "$PREFIX/bin/autoprint.py"
+        mv "$TEMP_FOLDER/autoprint_menu.sh" "$PREFIX/bin/autoprint"
+
+        echo "$REMOTE_VERSION" > "$VERSION_FILE"
+        echo -e "${GREEN}[✓] Updated to version $REMOTE_VERSION.${NC}"
+    else
+        echo -e "${RED}[✗] Update failed. Keeping current version.${NC}"
+    fi
+
+    echo -e "${BLUE}[*] Cleaning up...${NC}"
+    rm -rf "$TEMP_FOLDER"
 else
     echo -e "${GREEN}[✓] You already have the latest version ($LOCAL_VERSION).${NC}"
 fi
