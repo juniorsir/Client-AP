@@ -235,11 +235,15 @@ def start_watcher(paths, config):
     observer.join()
 
 if __name__ == "__main__":
-    
+    if not os.path.exists(CONFIG_FILE):
+        config = ask_config()
+    else:
+        config = load_config()
+
     folders = [
-    "/storage/emulated/0/DCIM/Camera",
-    "/storage/emulated/0/Download",
-    "/storage/emulated/0/Bluetooth"
+        "/storage/emulated/0/DCIM/Camera",
+        "/storage/emulated/0/Download",
+        "/storage/emulated/0/Bluetooth"
     ]
     start_watcher(folders, config)
                   
