@@ -16,13 +16,13 @@ check_and_install_pkg() {
 
         if [ "$latest_version" != "$installed_version" ]; then
             echo -e "${YELLOW}[+] New version of $pkg_name available: $installed_version → $latest_version${RESET}"
-            pkg install -y "$pkg_name"
+            yes | pkg install "$pkg_name"
         else
             echo -e "${GREEN}[✓] $pkg_name is up to date ($installed_version)${RESET}"
         fi
     else
         echo -e "${YELLOW}[+] Installing $pkg_name...${RESET}"
-        pkg install -y "$pkg_name"
+        yes | pkg install "$pkg_name"
     fi
 }
 
@@ -32,23 +32,13 @@ check_and_install_pip() {
     pip install --upgrade "$module"
 }
 
-echo -e "${BLUE}[*] Updating pkg sources...${RESET}"
-apt update && apt upgrade -y
+echo -e "${BLUE}[*] Updating package sources...${RESET}"
+apt-get update -y && apt-get upgrade -y
 
 echo -e "${BLUE}[*] Installing core packages...${RESET}"
-check_and_install_pkg python
-check_and_install_pkg make
-check_and_install_pkg wget
-check_and_install_pkg clang
-check_and_install_pkg libjpeg-turbo
-check_and_install_pkg freetype
-check_and_install_pkg git
-check_and_install_pkg curl
-check_and_install_pkg termux-api
-check_and_install_pkg iproute2
-check_and_install_pkg openssh
-check_and_install_pkg termux-exec
-check_and_install_pkg jq
+for pkg in python make wget clang libjpeg-turbo freetype git curl termux-api iproute2 openssh termux-exec jq; do
+    check_and_install_pkg "$pkg"
+done
 
 echo -e "${BLUE}[*] Setting up Termux storage access...${RESET}"
 termux-setup-storage
@@ -57,7 +47,7 @@ echo -e "${BLUE}[*] Installing/upgrading Python tools...${RESET}"
 pip install --upgrade pip setuptools wheel
 
 echo -e "${BLUE}[*] Installing Pillow with build flags...${RESET}"
-env INCLUDE="$PREFIX/include" LDFLAGS=" -lm" pip install Pillow
+env INCLUDE="$PREFIX/include" LDFLAGS="-lm" pip install Pillow
 
 echo -e "${BLUE}[*] Installing remaining Python modules...${RESET}"
 check_and_install_pip watchdog
@@ -66,7 +56,8 @@ check_and_install_pip reportlab
 echo -e "${BLUE}[*] Downloading latest AutoPrint setup script...${RESET}"
 curl -L -o autoprint-update.sh https://raw.githubusercontent.com/juniorsir/Client-AP/main/autoprint-update.sh
 chmod +x autoprint-update.sh
-mv autoprint-update.sh $PREFIX/bin/autoprint-update
+mv autoprint-update.sh "$PREFIX/bin/autoprint-update"
+
 sleep 1.5
 clear
 echo -e "${GREEN}[✓] Setup complete!${RESET}"
