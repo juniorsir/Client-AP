@@ -64,6 +64,3 @@ echo -e "${GREEN}[✓] Setup complete!${RESET}"
 echo
 echo -e "${YELLOW}You can now run the bot with:${RESET}"
 echo -e "${GREEN}Run autoprint-update to update Tool${RESET}"
-sleep 0.5
-
-autoprint-update
