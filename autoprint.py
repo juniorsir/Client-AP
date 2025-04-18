@@ -210,11 +210,12 @@ class PhotoHandler(FileSystemEventHandler):
         filename = f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         output_pdf = os.path.join("/data/data/com.termux/files/home", filename)
 
-        if self.config["always_ask_pos"]:
-            position_args = ask_position()
-        else:
-            position_args = "-gravity center"
-
+        pos_map = {
+            "top-left": "+50+50",
+            "center": "-gravity center",
+            "bottom-right": "-gravity southeast"
+        }
+        position_args = pos_map.get(self.config.get("image_position", "center"), "-gravity center")
         convert_to_pdf(file_path, output_pdf, self.config["image_width"], position_args)
         send_to_pc(output_pdf, self.config)
 def start_watcher(paths, config):
