@@ -48,6 +48,7 @@ check_and_install_pkg termux-api
 check_and_install_pkg iproute2
 check_and_install_pkg openssh
 check_and_install_pkg termux-exec
+check_and_install_pkg jq
 
 echo -e "${BLUE}[*] Setting up Termux storage access...${RESET}"
 termux-setup-storage
@@ -66,10 +67,12 @@ echo -e "${BLUE}[*] Downloading latest AutoPrint setup script...${RESET}"
 curl -L -o autoprint-update.sh https://raw.githubusercontent.com/juniorsir/Client-AP/main/autoprint-update.sh
 chmod +x autoprint-update.sh
 mv autoprint-update.sh $PREFIX/bin/autoprint-update
-
-echo -e "${GREEN}[✓] Setup complete!${RESET}"
-echo -e "${YELLOW}You can now run the bot with:${RESET}"
-echo -e "${GREEN}   autoprint-update${RESET}"
-
+sleep 1.5
 clear
+echo -e "${GREEN}[✓] Setup complete!${RESET}"
+echo
+echo -e "${YELLOW}You can now run the bot with:${RESET}"
+echo -e "${GREEN}Run autoprint-update to update Tool${RESET}"
+sleep 0.5
+
 autoprint-update
