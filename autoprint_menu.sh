@@ -203,7 +203,7 @@ function show_menu() {
             else
                 echo -e "${RED}Failed to start AutoPrint. Check autoprint.log for details.${NC}"
                 echo 
-                echo -e "${YELLOW}May be the 'config' file is missing. Restart with 'autoprint'${NC}
+                echo -e "${YELLOW}May be the config file is missing. Restart with autoprint ${NC}
                 termux-wake-unlock
             fi
             ;;
