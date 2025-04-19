@@ -166,9 +166,16 @@ function check_update_notice() {
     LOCAL_VERSION=$(cat "$VERSION_FILE")
 
     if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-        echo -e "\033[1;33m[!] New version available: $REMOTE_VERSION\033[0m"
-        echo -e "    Current version: $LOCAL_VERSION"
-        echo
+        #
+        echo -e ""
+        echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
+        echo -e "${YELLOW}║${NC}        ${GREEN}★ New Update Available! ★${NC}         ${YELLOW}║${NC}"
+        echo -e "${YELLOW}╠══════════════════════════════════════════════╣${NC}"
+        echo -e "${YELLOW}║${NC}  Current Version  : ${CYAN}$LOCAL_VERSION${NC}            ${YELLOW}║${NC}"
+        echo -e "${YELLOW}║${NC}  Available Version: ${CYAN}$REMOTE_VERSION${NC}            ${YELLOW}║${NC}"
+        echo -e "${YELLOW}╚══════════════════════════════════════════════╝${NC}"
+        echo -e ""
+
         read -p $'\033[1;33mDo you want to update now? (y/n): \033[0m' update_choice
         if [[ "$update_choice" =~ ^[yY]$ ]]; then
             echo -e "\033[1;34mRunning updater...\033[0m"
