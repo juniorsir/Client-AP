@@ -169,7 +169,7 @@ function check_update_notice() {
         #
         echo -e ""
         echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
-        echo -e "${YELLOW}║${NC}        ${GREEN}★ New Update Available! ★${NC}            ${YELLOW}║${NC}"
+        echo -e "${YELLOW}║${NC}        ${GREEN}★ New Update Available! ★${NC}             ${YELLOW}║${NC}"
         echo -e "${YELLOW}╠══════════════════════════════════════════════╣${NC}"
         echo -e "${YELLOW}║${NC}  Current Version  : ${CYAN}$LOCAL_VERSION${NC}                   ${YELLOW}║${NC}"
         echo -e "${YELLOW}║${NC}  Available Version: ${CYAN}$REMOTE_VERSION${NC}                   ${YELLOW}║${NC}"
