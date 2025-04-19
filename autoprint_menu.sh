@@ -15,57 +15,64 @@ GIT_REPO="https://github.com/juniorsir/Client-AP.git"
 LOCAL_FOLDER="$HOME/Client-AP"
 
 function scan_network_for_ssh() {
+
+    trap 'echo -e "\n${RED}Scan cancelled by user.${NC}"; exit 1' INT
+
     echo -e "\n${CYAN}[Scanning local network for SSH-enabled devices...]${NC}"
 
-    # Try using `ip route` for subnet
-    subnet=$(ip route | grep -oP '(\d+\.\d+\.\d+)\.\d+/24' | head -n 1)
-
-    # Fallback to `ifconfig` if necessary
+    # Detect subnet
+    subnet=$(ip route | awk '/src/ {print $1}')
     if [ -z "$subnet" ]; then
         if ! command -v ifconfig >/dev/null 2>&1; then
             echo -e "${YELLOW}Installing net-tools for ifconfig...${NC}"
             pkg install net-tools -y >/dev/null
         fi
-        subnet=$(ifconfig | grep inet | grep -v 127.0.0.1 | awk '{print $2}' | cut -d'.' -f1-3 | head -n1)
-        [ -n "$subnet" ] && subnet="${subnet}.0/24"
+        ip_addr=$(ifconfig | grep -w inet | grep -v 127.0.0.1 | awk '{print $2}' | head -n1)
+        subnet=$(echo "$ip_addr" | cut -d'.' -f1-3).0/24
     fi
 
     if [ -z "$subnet" ]; then
-        echo -e "${RED}Unable to detect subnet.${NC}"
+        echo -e "${RED}Unable to determine subnet.${NC}"
         return 1
     fi
 
     base_ip=$(echo "$subnet" | cut -d'/' -f1 | cut -d'.' -f1-3)
 
-    spinner="/-\|"
-    echo -ne "${YELLOW}Searching: ${NC}"
+    echo -e "${YELLOW}Scanning subnet ${CYAN}$subnet${NC}..."
+
+    # Spinner animation
+    spinner='|/-\'
+    spin() {
+        i=0
+        while kill -0 "$1" 2>/dev/null; do
+            i=$(( (i+1) %4 ))
+            printf "\r${CYAN}Scanning ${spinner:$i:1}${NC}"
+            sleep 0.1
+        done
+    }
 
     for i in $(seq 1 254); do
         ip="$base_ip.$i"
-        timeout 1 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null &
-        pid=$!
+        echo -ne "${NC}\r${YELLOW}Checking $ip...${NC} "
 
-        spin_i=0
-        while kill -0 $pid 2>/dev/null; do
-            spin_i=$(( (spin_i+1) %4 ))
-            printf "\b${spinner:$spin_i:1}"
-            sleep 0.1
-        done
+        # Capture output and error
+        output=$(timeout 1 bash -c "cat < /dev/null > /dev/tcp/$ip/22" 2>&1)
+        status=$?
 
-        wait $pid
-        if [ $? -eq 0 ]; then
-            echo -e "\b${GREEN}[FOUND] Possible SSH device: $ip${NC}"
-            echo
+        if [ $status -eq 0 ]; then
+            printf "\r${GREEN}[FOUND] SSH available on: $ip${NC}\n"
             read -p "  ${YELLOW}Use $ip as your PC IP? (y/n): ${NC}" choice
             if [ "$choice" = "y" ]; then
                 echo "$ip" > /tmp/autoprint_ip.tmp
+                echo -e "${GREEN}Saved $ip for use.${NC}"
                 return 0
             fi
-            echo -ne "${YELLOW}Searching: ${NC}"
+        else
+            echo -e "${RED}No SSH or error: ${output}${NC}"
         fi
     done
 
-    echo -e "\b${RED}No active SSH devices found.${NC}"
+    echo -e "\n${RED}No SSH-enabled devices found.${NC}"
     return 1
 }
 
