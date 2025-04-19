@@ -36,10 +36,10 @@ LOCAL_VERSION=$(cat "$VERSION_FILE")
 if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     echo
     echo -e "${YELLOW}╔══════════════════════════════════════════════╗${NC}"
-    echo -e "${YELLOW}║${NC}        ${GREEN}★ New Update Available! ★${NC}         ${YELLOW}║${NC}"
+    echo -e "${YELLOW}║${NC}        ${GREEN}★ New Update Available! ★${NC}            ${YELLOW}║${NC}"
     echo -e "${YELLOW}╠══════════════════════════════════════════════╣${NC}"
-    echo -e "${YELLOW}║${NC}  Current Version  : ${CYAN}$LOCAL_VERSION${NC}            ${YELLOW}║${NC}"
-    echo -e "${YELLOW}║${NC}  Available Version: ${CYAN}$REMOTE_VERSION${NC}            ${YELLOW}║${NC}"
+    echo -e "${YELLOW}║${NC}  Current Version  : ${CYAN}$LOCAL_VERSION${NC}                   ${YELLOW}║${NC}"
+    echo -e "${YELLOW}║${NC}  Available Version: ${CYAN}$REMOTE_VERSION${NC}                   ${YELLOW}║${NC}"
     echo -e "${YELLOW}╚══════════════════════════════════════════════╝${NC}"
     echo
 
