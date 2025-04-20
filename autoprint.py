@@ -112,7 +112,7 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
     loader_thread.start()
 
     try:
-        width_mm = int(width_mm)
+        width_mm = int(width_mm) if width_mm else 160
         width_points = width_mm * 2.83465  # Convert mm to points
         a4_width, a4_height = A4
 
