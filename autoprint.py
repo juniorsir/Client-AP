@@ -12,7 +12,9 @@ import sys
 from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-
+import re
+import http.server
+import socketserver
 
 FAILED_DIR = os.path.expanduser("~/autoprint_failed")
 os.makedirs(FAILED_DIR, exist_ok=True)
@@ -22,6 +24,36 @@ CONFIG_FILE = os.path.expanduser("~/.autoprint_config.json")
 A4_WIDTH_PX = 2480  # 210mm * 300 DPI / 25.4
 A4_HEIGHT_PX = 3508  # 297mm * 300 DPI / 25.4
 
+def log_message(message, level="INFO"):
+    colors = {
+        "INFO": "\033[94m",     # Blue
+        "SUCCESS": "\033[92m",  # Green
+        "ERROR": "\033[91m",    # Red
+        "RESET": "\033[0m"
+    }
+    
+    # Colored print to terminal
+    color = colors.get(level, "")
+    reset = colors["RESET"]
+    print(f"{color}[{level}]{reset} {message}")
+
+    # Clean log (strip ANSI)
+    clean_message = f"[{level}] {message}"
+    with open("autoprint.log", "a") as log_file:
+        log_file.write(clean_message + "\n")
+
+def start_server(file_path, port=8080):
+    os.chdir(os.path.dirname(file_path))  # Serve from PDF directory
+
+    handler = http.server.SimpleHTTPRequestHandler
+    log_message(f"Starting preview server at: http://localhost:{port}/{os.path.basename(file_path)}", "INFO")
+    print("Press Ctrl+C to stop the server.")
+    try:
+        with socketserver.TCPServer(("", port), handler) as httpd:
+            httpd.serve_forever()
+    except KeyboardInterrupt:
+        log_message("Preview server stopped.", "INFO")
+        
 def loading_animation(message, stop_event):
     spinner = itertools.cycle(['|', '/', '-', '\\'])
     while not stop_event.is_set():
@@ -113,7 +145,7 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
 
     try:
         width_mm = int(width_mm) if str(width_mm).strip().isdigit() else 160  # fallback default
-        print(f"\033[94m[INFO]\033[0m Using width: {width_mm} mm")  # Blue info
+        log_message(f"Using width: {width_mm} mm", "INFO")
         width_points = width_mm * 2.83465  # Convert mm to points
         a4_width, a4_height = A4
 
@@ -145,9 +177,10 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
         c.setFont("Helvetica", 12)
         c.drawString(50, a4_height - 30, date_str)  # Add date at top-left
         c.save()
-        print(f"\033[92m[SUCCESS]\033[0m Image converted to PDF: {output_pdf}")  # Green success
+        log_message(f"Image converted to PDF: {output_pdf}", "SUCCESS")
+        start_server(output_pdf, port=8080)# Green success
     except Exception as e:
-        print(f"\033[91m[ERROR]\033[0m Conversion failed: {e}")  # Red error
+        log_message(f"Conversion failed: {e}", "ERROR")
     finally:
         stop_event.set()
         loader_thread.join()
