@@ -132,9 +132,16 @@ EOF
 clear
 function view_live_log() {
     echo -e "${CYAN}Press Ctrl+C to stop viewing and return to the menu.${NC}"
-    
+
     trap "echo -e '\n${YELLOW}Returning to menu...${NC}'; trap - INT; return" INT
-    tail -f autoprint.log
+
+    # Use sed to colorize log output when tailing the log file
+    tail -f autoprint.log | sed -e "s/INFO/$(echo -e '\033[92m[INFO]\033[0m')/g" \
+                                -e "s/ERROR/$(echo -e '\033[91m[ERROR]\033[0m')/g" \
+                                -e "s/OK/$(echo -e '\033[92m[OK]\033[0m')/g" \
+                                -e "s/WARN/$(echo -e '\033[93m[WARN]\033[0m')/g" \
+                                -e "s/DEBUG/$(echo -e '\033[94m[DEBUG]\033[0m')/g"
+    
     trap - INT  # Reset the trap afterward
 }
 clear
