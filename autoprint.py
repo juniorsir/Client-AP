@@ -105,19 +105,25 @@ def ask_position():
     }
     return positions.get(choice, "-gravity center")
 
-def convert_to_pdf(image_path, output_pdf, width_mm, position_args):
+def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspect=False):
     stop_event = threading.Event()
     loader_thread = threading.Thread(target=loading_animation, args=("Converting image...", stop_event))
     notify_process("AutoPrint", f"Converting {os.path.basename(image_path)} to PDF")
     loader_thread.start()
-    
+
     try:
         width_mm = int(width_mm)
         width_points = width_mm * 2.83465  # Convert mm to points
         a4_width, a4_height = A4
 
         img = Image.open(image_path)
-        aspect_ratio = img.height / img.width
+
+        if default_aspect:
+            # Force 4:3 aspect ratio
+            aspect_ratio = 3 / 4
+        else:
+            aspect_ratio = img.height / img.width
+
         height_points = width_points * aspect_ratio
 
         # Decide image position
