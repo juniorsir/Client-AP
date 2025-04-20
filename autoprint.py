@@ -108,7 +108,7 @@ def ask_position():
 def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspect=False):
     stop_event = threading.Event()
     loader_thread = threading.Thread(target=loading_animation, args=("Converting image...", stop_event))
-    notify_process("AutoPrint", f"Converting {os.path.basename(image_path)} to PDF")
+   
     loader_thread.start()
 
     try:
@@ -154,14 +154,14 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
 def send_to_pc(pdf_path, config):
     stop_event = threading.Event()
     loader_thread = threading.Thread(target=loading_animation, args=("Sending to PC...", stop_event))
-    notify_process("AutoPrint", f"Sending PDF to PC: {os.path.basename(pdf_path)}")
+   
     loader_thread.start()
 
     remote_path = f"{config['pc_user']}@{config['pc_ip']}:{config['remote_folder']}/"
     try:
         subprocess.run(["scp", pdf_path, remote_path], check=True)
         print(f"\n[SENT] {pdf_path} -> {remote_path}")
-        notify_process("AutoPrint", f"Sent successfully: {os.path.basename(pdf_path)}")
+       
     except subprocess.CalledProcessError:
         print("\n[ERROR] Failed to send PDF.")
         if os.path.exists(pdf_path):
@@ -172,7 +172,7 @@ def send_to_pc(pdf_path, config):
                 print(f"[SAVED LOCALLY] to {fallback_path}")
             except Exception as e:
                 print(f"[CRITICAL] Failed to move file to fallback folder: {e}")
-                notify_process("AutoPrint", "Send failed. PDF saved locally.")
+         
         else:
             print("[SKIPPED] File not created or already removed, nothing to save.")
     finally:
@@ -200,7 +200,7 @@ class PhotoHandler(FileSystemEventHandler):
             for _ in range(20):  # Check up to ~20 seconds
                 if os.path.exists(final_image_path):
                     print(f"[READY] File is finalized: {final_image_path}")
-                    notify_process("AutoPrint", f"New image ready: {os.path.basename(final_image_path)}")
+                   
                     file_path = final_image_path
                     break
                 time.sleep(1)
@@ -212,7 +212,7 @@ class PhotoHandler(FileSystemEventHandler):
             return
 
         print(f"[NEW FILE] {file_path}")
-        notify_process("AutoPrint", f"New image detected: {os.path.basename(file_path)}")
+      
         filename = f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         output_pdf = os.path.join("/data/data/com.termux/files/home", filename)
 
