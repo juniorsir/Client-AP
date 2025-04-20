@@ -46,7 +46,7 @@ def start_server(file_path, port=8080):
     os.chdir(os.path.dirname(file_path))  # Serve from PDF directory
 
     handler = http.server.SimpleHTTPRequestHandler
-    log_message(f"Starting preview server at: http://localhost:{port}/{os.path.basename(file_path)}", "INFO")
+    log_message(f"Starting preview server at: http://localhost:{port}/autoprint_failed/{os.path.basename(file_path)}", "INFO")
     print("Press Ctrl+C to stop the server.")
     try:
         with socketserver.TCPServer(("", port), handler) as httpd:
