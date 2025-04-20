@@ -113,7 +113,7 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
 
     try:
         width_mm = int(width_mm) if str(width_mm).strip().isdigit() else 160  # fallback default
-        print(f"[INFO] Using width: {width_mm} mm")
+        print(f"\033[94m[INFO]\033[0m Using width: {width_mm} mm")  # Blue info
         width_points = width_mm * 2.83465  # Convert mm to points
         a4_width, a4_height = A4
 
@@ -145,9 +145,9 @@ def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspe
         c.setFont("Helvetica", 12)
         c.drawString(50, a4_height - 30, date_str)  # Add date at top-left
         c.save()
-
+        print(f"\033[92m[SUCCESS]\033[0m Image converted to PDF: {output_pdf}")  # Green success
     except Exception as e:
-        print("\nImage conversion failed:", e)
+        print(f"\033[91m[ERROR]\033[0m Conversion failed: {e}")  # Red error
     finally:
         stop_event.set()
         loader_thread.join()
