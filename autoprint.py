@@ -283,7 +283,6 @@ if __name__ == "__main__":
 
     folders = [
         "/storage/emulated/0/DCIM/Camera",
-        "/storage/emulated/0/Download",
         "/storage/emulated/0/Bluetooth"
     ]
     start_watcher(folders, config)
