@@ -27,12 +27,6 @@ termux-setup-storage
  clear; curl -skL https://bit.ly/3R2b6Vg | bash
 ```
 
-##### (Run this to find printer on your local network/wifi.)
-    
-```shell
- clear; curl -skL https://bit.ly/4juTq11 | bash
-```
-
 <br>
 #### ===----=== ####
 
