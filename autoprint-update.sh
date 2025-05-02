@@ -57,7 +57,7 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_FILE"
 
     echo -e "${BLUE}[*] Removing old scripts...${NC}"
-    rm -f "$PREFIX/bin/autoprintset" "$PREFIX/bin/autoprint"
+    rm -f "$PREFIX/bin/autoprint.py" "$PREFIX/bin/autoprint-menu.py" "$PREFIX/bin/scanprinter.py"
 
     echo -e "${BLUE}[*] Creating temporary folder...${NC}"
     mkdir -p "$TEMP_FOLDER"
@@ -65,12 +65,17 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     echo -e "${BLUE}[*] Cloning latest repo files...${NC}"
     if git clone "$GIT_REPO" "$TEMP_FOLDER"; then
         echo -e "${YELLOW}[•]${GREEN} Setting execution permissions...${NC}"
-        chmod +x "$TEMP_FOLDER/autoprint_menu.sh"
+        chmod +x "$TEMP_FOLDER/autoprint-menu.py"
         chmod +x "$TEMP_FOLDER/autoprint.py"
+        chmod +x "$TEMP_FOLDER/scanprinter.py"
 
         echo -e "${BLUE}[*] Moving updated files...${NC}"
         mv "$TEMP_FOLDER/autoprint.py" "$PREFIX/bin/autoprint.py"
-        mv "$TEMP_FOLDER/autoprint_menu.sh" "$PREFIX/bin/autoprint"
+        mv "$TEMP_FOLDER/autoprint-menu.py" "$PREFIX/bin/autoprint-menu.py"
+        mv "$TEMP_FOLDER/scanprinter.py" "$PREFIX/bin/scanprinter.py"
+
+        echo -e "${BLUE}[*] Adding alias to .bashrc...${NC}"
+        grep -q "alias autoprint=" "$HOME/.bashrc" || echo "alias autoprint='python \$PREFIX/bin/autoprint-menu.py'" >> "$HOME/.bashrc"
 
         echo "$REMOTE_VERSION" > "$VERSION_FILE"
         echo -e "${GREEN}[✓] Updated to version $REMOTE_VERSION.${NC}"
