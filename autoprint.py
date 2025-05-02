@@ -1,272 +1,172 @@
-
 import os
 import time
 import json
 import subprocess
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from datetime import datetime
 import threading
 import itertools
 import sys
+import re
+import socket
+from datetime import datetime
 from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-import re
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 import http.server
 import socketserver
 
+# Constants
 FAILED_DIR = os.path.expanduser("~/autoprint_failed")
+CONFIG_FILE = os.path.expanduser("~/.autoprint_config.json")
+A4_WIDTH_PX = 2480
+A4_HEIGHT_PX = 3508
 os.makedirs(FAILED_DIR, exist_ok=True)
 
-CONFIG_FILE = os.path.expanduser("~/.autoprint_config.json")
-
-A4_WIDTH_PX = 2480  # 210mm * 300 DPI / 25.4
-A4_HEIGHT_PX = 3508  # 297mm * 300 DPI / 25.4
-
+# Logging
 def log_message(message, level="INFO"):
     colors = {
-        "INFO": "\033[94m",     # Blue
-        "SUCCESS": "\033[92m",  # Green
-        "ERROR": "\033[91m",    # Red
-        "RESET": "\033[0m"
+        "INFO": "\033[94m", "SUCCESS": "\033[92m",
+        "ERROR": "\033[91m", "RESET": "\033[0m"
     }
-    
-    # Colored print to terminal
     color = colors.get(level, "")
     reset = colors["RESET"]
     print(f"{color}[{level}]{reset} {message}")
-
-    # Clean log (strip ANSI)
-    clean_message = f"[{level}] {message}"
     with open("autoprint.log", "a") as log_file:
-        log_file.write(clean_message + "\n")
+        log_file.write(f"[{level}] {message}\n")
 
-def start_server(file_path, port=8080):
-    os.chdir(os.path.dirname(file_path))  # Serve from PDF directory
-
-    handler = http.server.SimpleHTTPRequestHandler
-    log_message(f"Starting preview server at: http://localhost:{port}/autoprint_failed/{os.path.basename(file_path)}", "INFO")
-    print("Press Ctrl+C to stop the server.")
-    try:
-        with socketserver.TCPServer(("", port), handler) as httpd:
-            httpd.serve_forever()
-    except KeyboardInterrupt:
-        log_message("Preview server stopped.", "INFO")
-        
-def loading_animation(message, stop_event):
-    spinner = itertools.cycle(['|', '/', '-', '\\'])
-    while not stop_event.is_set():
-        c = next(spinner)
-        sys.stdout.write(f'\r{message} {c}')
-        sys.stdout.flush()
-        time.sleep(0.1)
-    sys.stdout.write('\r' + ' ' * (len(message) + 5) + '\r')  # Clear the line
-    sys.stdout.flush()
-  
+# Notification (Termux)
 def notify_process(title, message):
     try:
         subprocess.run([
-            "termux-notification",
-            "--title", f"{title}",
-            "--content", f"{message}",
-            "--priority", "high"
+            "termux-notification", "--title", title,
+            "--content", message, "--priority", "high"
         ])
     except Exception as e:
-        print(f"[Notification Error] {e}")
+        log_message(f"Notification error: {e}", "ERROR")
+
+# Config
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    else:
-        return {}
+    return json.load(open(CONFIG_FILE)) if os.path.exists(CONFIG_FILE) else {}
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=4)
 
-def wait_for_ready_file(original_path, timeout=15):
-    """Wait until the image file becomes available and the .pending file is gone."""
-    base_dir = os.path.dirname(original_path)
-    base_name = os.path.basename(original_path)
-
-    for _ in range(timeout):
-        # Look for the file without `.pending-` prefix
-        for f in os.listdir(base_dir):
-            if f.endswith(base_name) and not f.startswith(".pending"):
-                full_path = os.path.join(base_dir, f)
-                if os.path.exists(full_path):
-                    return full_path
-        time.sleep(1)
-
-    print(f"[SKIPPED] File not finalized in time: {original_path}")
-    return None
-
 def ask_config():
     config = load_config()
-
     print("\n[Configuring for first time use...]")
-
-    pc_ip = config.get("pc_ip") or input("Enter PC IP address: ").strip()
-    pc_user = config.get("pc_user") or input("Enter PC username: ").strip()
-    remote_folder = config.get("remote_folder") or input("Enter remote PC folder path (e.g. /home/you/printjobs): ").strip()
-    image_width = config.get("image_width") or input("Set default image width in mm (e.g. 120): ").strip()
-    always_ask_pos = config.get("always_ask_pos", True)
-
     config.update({
-        "pc_ip": pc_ip,
-        "pc_user": pc_user,
-        "remote_folder": remote_folder,
-        "image_width": image_width,
-        "always_ask_pos": always_ask_pos
+        "pc_ip": config.get("pc_ip") or input("Enter PC IP: ").strip(),
+        "pc_user": config.get("pc_user") or input("Enter PC username: ").strip(),
+        "remote_folder": config.get("remote_folder") or input("Enter remote folder: ").strip(),
+        "image_width": config.get("image_width") or input("Image width (mm): ").strip(),
+        "always_ask_pos": config.get("always_ask_pos", True)
     })
-
     save_config(config)
     return config
 
 def ask_position():
-    print("\nChoose image position on paper:")
-    print("1. Top-Left")
-    print("2. Center")
-    print("3. Bottom-Right")
+    print("\nChoose image position:\n1. Top-Left\n2. Center\n3. Bottom-Right")
     choice = input("Enter choice (1/2/3): ").strip()
-    positions = {
-        "1": "+50+50",
-        "2": "-gravity center",
-        "3": "-gravity southeast"
-    }
-    return positions.get(choice, "-gravity center")
+    return {"1": "+50+50", "2": "-gravity center", "3": "-gravity southeast"}.get(choice, "-gravity center")
 
+# PDF Conversion
 def convert_to_pdf(image_path, output_pdf, width_mm, position_args, default_aspect=False):
-    stop_event = threading.Event()
-    loader_thread = threading.Thread(target=loading_animation, args=("Converting image...", stop_event))
-   
-    loader_thread.start()
-
+    threading.Thread(target=start_server, args=(output_pdf,)).start()
     try:
-        width_mm = int(width_mm) if str(width_mm).strip().isdigit() else 160  # fallback default
-        log_message(f"Using width: {width_mm} mm", "INFO")
-        width_points = width_mm * 2.83465  # Convert mm to points
-        a4_width, a4_height = A4
-
+        width_mm = int(width_mm)
+        width_pt = width_mm * 2.83465
+        a4_w, a4_h = A4
         img = Image.open(image_path)
+        aspect = 3 / 4 if default_aspect else img.height / img.width
+        height_pt = width_pt * aspect
 
-        if default_aspect:
-            # Force 4:3 aspect ratio
-            aspect_ratio = 3 / 4
-        else:
-            aspect_ratio = img.height / img.width
-
-        height_points = width_points * aspect_ratio
-
-        # Decide image position
-        if "center" in position_args:
-            x = (a4_width - width_points) / 2
-            y = (a4_height - height_points) / 2
-        elif "southeast" in position_args:
-            x = a4_width - width_points - 50
-            y = 50
-        else:  # Top-left default
-            x = 50
-            y = a4_height - height_points - 50
-
-        date_str = datetime.now().strftime("%A, %d %B %Y")
+        x, y = {
+            "-gravity center": ((a4_w - width_pt) / 2, (a4_h - height_pt) / 2),
+            "-gravity southeast": (a4_w - width_pt - 50, 50)
+        }.get(position_args, (50, a4_h - height_pt - 50))
 
         c = canvas.Canvas(output_pdf, pagesize=A4)
-        c.drawImage(image_path, x, y, width=width_points, height=height_points)
+        c.drawImage(image_path, x, y, width=width_pt, height=height_pt)
         c.setFont("Helvetica", 12)
-        c.drawString(50, a4_height - 30, date_str)  # Add date at top-left
+        c.drawString(50, a4_h - 30, datetime.now().strftime("%A, %d %B %Y"))
         c.save()
         log_message(f"Image converted to PDF: {output_pdf}", "SUCCESS")
-        start_server(output_pdf, port=8080)# Green success
     except Exception as e:
         log_message(f"Conversion failed: {e}", "ERROR")
-    finally:
-        stop_event.set()
-        loader_thread.join()
 
-def send_to_pc(pdf_path, config):
-    stop_event = threading.Event()
-    loader_thread = threading.Thread(target=loading_animation, args=("Sending to PC...", stop_event))
-   
-    loader_thread.start()
-
-    remote_path = f"{config['pc_user']}@{config['pc_ip']}:{config['remote_folder']}/"
+# Print & Fallback
+def get_saved_printer_ip():
     try:
-        subprocess.run(["scp", pdf_path, remote_path], check=True)
-        print(f"\n[SENT] {pdf_path} -> {remote_path}")
-       
-    except subprocess.CalledProcessError:
-        print("\n[ERROR] Failed to send PDF.")
-        if os.path.exists(pdf_path):
-            try:
-                os.makedirs(FAILED_DIR, exist_ok=True)
-                fallback_path = os.path.join(FAILED_DIR, os.path.basename(pdf_path))
-                os.rename(pdf_path, fallback_path)
-                print(f"[SAVED LOCALLY] to {fallback_path}")
-            except Exception as e:
-                print(f"[CRITICAL] Failed to move file to fallback folder: {e}")
-         
-        else:
-            print("[SKIPPED] File not created or already removed, nothing to save.")
-    finally:
-        stop_event.set()
-        loader_thread.join()
+        return json.load(open(CONFIG_FILE)).get("printer_ip")
+    except Exception:
+        return None
 
+def send_to_printer(pdf_path):
+    printer_ip = get_saved_printer_ip()
+    if not printer_ip:
+        log_message("No printer IP configured.", "ERROR")
+        return
+    if not os.path.exists(pdf_path):
+        log_message(f"File not found: {pdf_path}", "ERROR")
+        return
+    try:
+        with open(pdf_path, "rb") as f:
+            data = f.read()
+        with socket.create_connection((printer_ip, 9100), timeout=5) as sock:
+            sock.sendall(data)
+        log_message(f"Sent to printer: {printer_ip}", "SUCCESS")
+    except Exception as e:
+        log_message(f"Print failed: {e}", "ERROR")
+        try:
+            fallback_path = os.path.join(FAILED_DIR, os.path.basename(pdf_path))
+            os.rename(pdf_path, fallback_path)
+            log_message(f"Saved to: {fallback_path}", "INFO")
+        except Exception as move_error:
+            log_message(f"Fallback save failed: {move_error}", "ERROR")
+
+# File Watcher
 class PhotoHandler(FileSystemEventHandler):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, config): self.config = config
 
     def on_created(self, event):
-        if event.is_directory:
-            return
-
+        if event.is_directory: return
         file_path = event.src_path
- 
+
         if ".pending-" in os.path.basename(file_path):
-        # Extract the real image name from pending file name
             real_name = os.path.basename(file_path).split('-')[-1]
-            dir_path = os.path.dirname(file_path)
-            final_image_path = os.path.join(dir_path, real_name)
-
-            print(f"[PENDING DETECTED] Waiting for final file: {real_name}")
-
-            for _ in range(20):  # Check up to ~20 seconds
-                if os.path.exists(final_image_path):
-                    print(f"[READY] File is finalized: {final_image_path}")
-                   
-                    file_path = final_image_path
+            final_path = os.path.join(os.path.dirname(file_path), real_name)
+            for _ in range(20):
+                if os.path.exists(final_path):
+                    file_path = final_path
                     break
                 time.sleep(1)
             else:
-                print(f"[TIMEOUT] File not finalized: {real_name}")
                 return
 
         if not file_path.lower().endswith((".jpg", ".jpeg", ".png")):
             return
 
-        print(f"[NEW FILE] {file_path}")
-      
-        filename = f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        output_pdf = os.path.join("/data/data/com.termux/files/home", filename)
+        log_message(f"New image detected: {file_path}", "INFO")
+        pdf_name = f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        output_pdf = os.path.join("/data/data/com.termux/files/home", pdf_name)
+        pos_map = {"top-left": "+50+50", "center": "-gravity center", "bottom-right": "-gravity southeast"}
+        position = pos_map.get(self.config.get("image_position", "center"), "-gravity center")
 
-        pos_map = {
-            "top-left": "+50+50",
-            "center": "-gravity center",
-            "bottom-right": "-gravity southeast"
-        }
-        position_args = pos_map.get(self.config.get("image_position", "center"), "-gravity center")
-        convert_to_pdf(file_path, output_pdf, self.config["image_width"], position_args)
-        send_to_pc(output_pdf, self.config)
+        convert_to_pdf(file_path, output_pdf, self.config["image_width"], position)
+        send_to_printer(output_pdf)
+
+# Watcher Start
 def start_watcher(paths, config):
     observer = Observer()
-    event_handler = PhotoHandler(config)
+    handler = PhotoHandler(config)
     for path in paths:
         if os.path.exists(path):
-            observer.schedule(event_handler, path, recursive=False)
-            print(f"[Watching] {path}")
+            observer.schedule(handler, path, recursive=False)
+            log_message(f"Watching: {path}", "INFO")
         else:
-            print(f"[WARNING] Path does not exist: {path}")
+            log_message(f"Path not found: {path}", "ERROR")
     observer.start()
     try:
         while True:
@@ -275,15 +175,21 @@ def start_watcher(paths, config):
         observer.stop()
     observer.join()
 
-if __name__ == "__main__":
-    if not os.path.exists(CONFIG_FILE):
-        config = ask_config()
-    else:
-        config = load_config()
+# Preview Server
+def start_server(file_path, port=8080):
+    os.chdir(os.path.dirname(file_path))
+    handler = http.server.SimpleHTTPRequestHandler
+    try:
+        log_message(f"Preview at: http://localhost:{port}/{os.path.basename(file_path)}", "INFO")
+        print("Press Ctrl+C to stop server.")
+        with socketserver.TCPServer(("", port), handler) as httpd:
+            httpd.serve_forever()
+    except KeyboardInterrupt:
+        log_message("Server stopped", "INFO")
 
-    folders = [
-        "/storage/emulated/0/DCIM/Camera",
-        "/storage/emulated/0/Bluetooth"
-    ]
-    start_watcher(folders, config)
-                  
+# Main
+if __name__ == "__main__":
+    config = ask_config() if not os.path.exists(CONFIG_FILE) else load_config()
+    watch_paths = ["/storage/emulated/0/DCIM/Camera", "/storage/emulated/0/Bluetooth"]
+    start_watcher(watch_paths, config)
+            
