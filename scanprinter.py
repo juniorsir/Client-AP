@@ -2,6 +2,17 @@ import socket
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+# ANSI color codes
+RED     = '\033[91m'
+GREEN   = '\033[92m'
+YELLOW  = '\033[93m'
+BLUE    = '\033[94m'
+MAGENTA = '\033[95m'
+CYAN    = '\033[96m'
+WHITE   = '\033[97m'
+BOLD    = '\033[1m'
+UNDERLINE = '\033[4m'
+NC      = '\033[0m'  # No Color / Reset
 
 CONFIG_FILE = os.path.expanduser("~/.autoprint_config.json")
 ALERT_MESSAGE = ">>> AutoPrint configuration attempt <<<\n"
@@ -14,7 +25,7 @@ def get_local_ip():
         s.close()
         return local_ip
     except Exception as e:
-        print(f"[ERROR] Could not detect local IP: {e}")
+        print(f"{RED}[ERROR] Could not detect local IP: {e}{NC}")
         return None
 
 def is_printer(ip, port=9100, timeout=1):
@@ -25,7 +36,7 @@ def is_printer(ip, port=9100, timeout=1):
         return None
 
 def scan_printers(base_ip):
-    print(f"\n[Scanning subnet {base_ip}.0/24 for printers on port 9100...]")
+    print(f"\n{CYAN}[Scanning subnet {YELLOW}{base_ip}.0/24{CYAN} for printers on port {YELLOW}9100{CYAN}...]{NC}")
     ips = [f"{base_ip}.{i}" for i in range(1, 255)]
     found = []
 
@@ -33,7 +44,7 @@ def scan_printers(base_ip):
         results = executor.map(is_printer, ips)
         for ip in results:
             if ip:
-                print(f"[FOUND] Printer detected on: {ip}")
+                print(f"{GREEN}[FOUND]{NC} Printer detected on: {YELLOW}{ip}{NC}")
                 found.append(ip)
     return found
 
@@ -48,18 +59,18 @@ def save_printer_ip(ip):
     config["printer_ip"] = ip
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=4)
-    print(f"[SAVED] Printer IP saved to config: {ip}")
+    print(f"{BLUE}[SAVED]{NC} Printer IP saved to config: {CYAN}{ip}{NC}")
 
 def choose_printer(printers):
     print("\n[Available Printers]")
     for i, ip in enumerate(printers, 1):
-        print(f"{i}. {ip}")
+        print(f"{YELLOW}{i}{NC}. {CYAN}{ip}{NC}")
 
     while True:
         choice = input("Select a printer to save (1/2/...): ").strip()
         if choice.isdigit() and 1 <= int(choice) <= len(printers):
             return printers[int(choice) - 1]
-        print("Invalid selection. Try again.")
+        print(f"{RED}Invalid selection. Try again.{NC}")
 
 
 def get_printer_model(ip):
@@ -76,28 +87,28 @@ def send_alert_to_printer(ip, message=ALERT_MESSAGE):
     try:
         with socket.create_connection((ip, 9100), timeout=2) as sock:
             sock.sendall(message.encode())
-            print(f"[ALERT SENT] Sent alert to: {ip}")
+            print(f"{MAGENTA}[ALERT SENT]{NC} Sent alert to: {YELLOW}{ip}{NC}")
     except Exception as e:
-        print(f"[WARNING] Failed to send alert to {ip}: {e}")
+        print(f"{RED}[WARNING]{NC} Failed to send alert to {YELLOW}{ip}{NC}: {RED}{e}{NC}")
 
     # Show model after alert
     model = get_printer_model(ip)
-    print(f"[MODEL INFO] {ip} → {model}")
+    print(f"{BLUE}[MODEL INFO]{NC} {YELLOW}{ip}{NC} → {CYAN}{model}{NC}")
 
 def main():
     local_ip = get_local_ip()
     if not local_ip or local_ip.startswith("127."):
-        print("[ERROR] Could not detect proper local IP. Are you connected to a network?")
+        print(f"{RED}[ERROR]{NC} Could not detect proper local IP. {YELLOW}Are you connected to a network?{NC}")
         return
 
     base_ip = ".".join(local_ip.split(".")[:3])
     printers = scan_printers(base_ip)
 
     if not printers:
-        print("No printers found on the network.")
+        print(f"{YELLOW}No printers found on the network.{NC}")
         return
 
-    print("\n[INFO] Sending alert message to detected printers...")
+    print(f"\n{CYAN}[INFO]{NC} Sending alert message to detected printers...")
     for ip in printers:
         send_alert_to_printer(ip)
 
