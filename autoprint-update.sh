@@ -88,7 +88,6 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     rm -rf "$TEMP_FOLDER"
 else
     echo -e "${GREEN}[✓] You already have the latest version ($LOCAL_VERSION).${NC}"
-    source "$HOME/.bashrc"
 fi
 
 echo
