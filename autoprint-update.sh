@@ -75,6 +75,7 @@ if [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
         mv "$TEMP_FOLDER/scanprinter.py" "$PREFIX/bin/scanprinter.py"
 
         echo -e "${BLUE}[*] Adding alias to .bashrc...${NC}"
+        [ ! -f "$HOME/.bashrc" ] && touch "$HOME/.bashrc"
         grep -q "alias autoprint=" "$HOME/.bashrc" || echo "alias autoprint='python \$PREFIX/bin/autoprint-menu.py'" >> "$HOME/.bashrc"
 
         echo "$REMOTE_VERSION" > "$VERSION_FILE"
